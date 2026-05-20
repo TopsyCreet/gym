@@ -2,6 +2,7 @@
   "name": "irongate",
   "private": true,
   "version": "0.1.0",
+  "description": "Irongate gym progress app with check-in verification, daily challenges, achievement tracking, and editable weekly workout plans.",
   "type": "module",
   "scripts": {
     "dev": "vite",
