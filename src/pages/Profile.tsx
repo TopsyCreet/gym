@@ -6,7 +6,8 @@ import AnimatedCounter from '../components/AnimatedCounter';
 import RankBadge from '../components/RankBadge';
 import AchievementsTab from '../components/AchievementsTab';
 import GymPlanTab from '../components/GymPlanTab';
-import { findGymByCode, gyms } from '../data/gyms';
+import { gyms } from '../data/gyms';
+import { validateReferral } from '../api/backend';
 
 export default function Profile() {
   const user = useAuthStore((state) => state.getUser());
@@ -48,14 +49,16 @@ export default function Profile() {
   };
 
   const handleGymCodeUpdate = () => {
-    const foundGym = findGymByCode(gymCode);
-    if (!foundGym) {
-      setGymError('Referral code not recognized.');
-      return;
-    }
+    (async () => {
+      const foundGym = await validateReferral(gymCode);
+      if (!foundGym) {
+        setGymError('Referral code not recognized.');
+        return;
+      }
 
-    updateUser({ ...user, gymId: foundGym.id });
-    setGymError('Gym affiliation updated successfully.');
+      updateUser({ ...user, gymId: foundGym.gymId });
+      setGymError('Gym affiliation updated successfully.');
+    })();
   };
 
   return (

@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
-import { findGymByCode } from '../data/gyms';
+import { validateReferral } from '../api/backend';
 
 const rankOptions = ['Novice', 'Iron Body', 'Warrior', 'Elite', 'Shadow'];
 const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -27,8 +27,8 @@ export default function Signup() {
   const [gymCode, setGymCode] = useState('');
   const [error, setError] = useState('');
 
-  const gym = useMemo(() => findGymByCode(gymCode), [gymCode]);
-  const canContinueOne = useMemo(() => name && email && password && avatar && gymCode, [name, email, password, avatar, gymCode]);
+  const [gym, setGym] = useState<any | null>(null);
+  const canContinueOne = useMemo(() => name && email && password && avatar, [name, email, password, avatar]);
   const canContinueTwo = schedule.length >= 2;
 
   const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -39,16 +39,24 @@ export default function Signup() {
     }
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (step === 1) {
       if (!canContinueOne) {
-        setError('Complete all fields, upload an avatar, and enter a valid gym referral code.');
+        setError('Complete all fields and upload an avatar.');
         return;
       }
-      if (!gym) {
+      if (!gymCode) {
+        setError('Enter a gym referral code to continue.');
+        return;
+      }
+
+      setError('Validating referral code...');
+      const found = await validateReferral(gymCode);
+      if (!found) {
         setError('Enter a valid gym referral code to continue.');
         return;
       }
+      setGym(found);
     }
     if (step === 2 && !canContinueTwo) {
       setError('Choose at least two gym days.');
