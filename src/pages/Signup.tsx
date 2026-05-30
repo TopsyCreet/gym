@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
+import { findGymByCode } from '../data/gyms';
 
 const rankOptions = ['Novice', 'Iron Body', 'Warrior', 'Elite', 'Shadow'];
 const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -23,9 +24,11 @@ export default function Signup() {
   const [avatar, setAvatar] = useState('');
   const [schedule, setSchedule] = useState<string[]>(['Mon', 'Wed']);
   const [rankTitle, setRankTitle] = useState('Novice');
+  const [gymCode, setGymCode] = useState('');
   const [error, setError] = useState('');
 
-  const canContinueOne = useMemo(() => name && email && password && avatar, [name, email, password, avatar]);
+  const gym = useMemo(() => findGymByCode(gymCode), [gymCode]);
+  const canContinueOne = useMemo(() => name && email && password && avatar && gymCode, [name, email, password, avatar, gymCode]);
   const canContinueTwo = schedule.length >= 2;
 
   const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -37,9 +40,15 @@ export default function Signup() {
   };
 
   const handleNext = () => {
-    if (step === 1 && !canContinueOne) {
-      setError('Complete all fields and upload an avatar.');
-      return;
+    if (step === 1) {
+      if (!canContinueOne) {
+        setError('Complete all fields, upload an avatar, and enter a valid gym referral code.');
+        return;
+      }
+      if (!gym) {
+        setError('Enter a valid gym referral code to continue.');
+        return;
+      }
     }
     if (step === 2 && !canContinueTwo) {
       setError('Choose at least two gym days.');
@@ -50,7 +59,12 @@ export default function Signup() {
   };
 
   const handleSignup = () => {
-    signUp({ name, email, password, avatar, rankTitle, schedule });
+    if (!gym) {
+      setError('Your gym referral code must be valid before signup completes.');
+      return;
+    }
+
+    signUp({ name, email, password, avatar, rankTitle, schedule, gymId: gym.id });
     navigate('/dashboard');
   };
 
@@ -83,6 +97,15 @@ export default function Signup() {
                 Password
                 <input value={password} onChange={(e) => setPassword(e.target.value)} className="mt-3 w-full rounded-3xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none focus:border-glow" type="password" />
               </label>
+              <label className="block text-sm text-zinc-300">
+                Gym Referral Code
+                <input value={gymCode} onChange={(e) => setGymCode(e.target.value)} className="mt-3 w-full rounded-3xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none focus:border-glow" />
+              </label>
+              {gymCode && (
+                <p className={`text-sm mt-2 ${gym ? 'text-emerald-300' : 'text-amber-300'}`}>
+                  {gym ? `Linked to ${gym.name} (${gym.location})` : 'Referral code not recognized yet.'}
+                </p>
+              )}
               <label className="block text-sm text-zinc-300">
                 Upload Avatar
                 <input onChange={handleAvatarChange} className="mt-3 w-full rounded-3xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none file:mr-4 file:rounded-full file:border-0 file:bg-glow file:px-4 file:py-2 file:text-surface" type="file" accept="image/*" />
@@ -132,6 +155,7 @@ export default function Signup() {
               <div className="space-y-3 text-sm text-zinc-300">
                 <p><strong>Name:</strong> {name}</p>
                 <p><strong>Email:</strong> {email}</p>
+                <p><strong>Gym:</strong> {gym ? `${gym.name} (${gym.location})` : 'Unknown gym'}</p>
                 <p><strong>Schedule:</strong> {schedule.join(', ')}</p>
                 <p><strong>Starting Rank:</strong> {rankTitle}</p>
               </div>

@@ -6,16 +6,20 @@ import AnimatedCounter from '../components/AnimatedCounter';
 import RankBadge from '../components/RankBadge';
 import AchievementsTab from '../components/AchievementsTab';
 import GymPlanTab from '../components/GymPlanTab';
+import { findGymByCode, gyms } from '../data/gyms';
 
 export default function Profile() {
   const user = useAuthStore((state) => state.getUser());
   const updateUser = useAuthStore((state) => state.updateUser);
   const [schedule, setSchedule] = useState(user?.schedule ?? []);
   const [activeTab, setActiveTab] = useState<'overview' | 'achievements' | 'gymplan'>('overview');
+  const [gymCode, setGymCode] = useState('');
+  const [gymError, setGymError] = useState('');
 
   if (!user) return null;
 
   const { level, progress, from, to } = getXpProgress(user.xp);
+  const currentGym = gyms.find((gym) => gym.id === user.gymId);
 
   const chartData = useMemo(() => {
     const weeks: number[] = [];
@@ -41,6 +45,17 @@ export default function Profile() {
   const handleSaveWorkoutPlan = (newPlan: Record<string, any>) => {
     updateUser({ ...user, workoutPlan: newPlan });
     setActiveTab('overview');
+  };
+
+  const handleGymCodeUpdate = () => {
+    const foundGym = findGymByCode(gymCode);
+    if (!foundGym) {
+      setGymError('Referral code not recognized.');
+      return;
+    }
+
+    updateUser({ ...user, gymId: foundGym.id });
+    setGymError('Gym affiliation updated successfully.');
   };
 
   return (
@@ -101,6 +116,29 @@ export default function Profile() {
         {activeTab === 'overview' && (
           <div className="grid gap-6 xl:grid-cols-[1.3fr_0.7fr]">
             <section className="space-y-6 rounded-3xl border border-white/10 bg-surface p-6 shadow-soft">
+              <div>
+                <p className="text-sm uppercase tracking-[0.35em] text-zinc-400">Gym affiliation</p>
+                <p className="mt-2 text-zinc-300">Your current gym and referral code. Update the code if you want to switch locations.</p>
+              </div>
+              <div className="rounded-3xl border border-white/10 bg-[#07101f] p-4 text-sm text-zinc-300">
+                <p className="font-semibold text-white">{currentGym?.name ?? 'No gym assigned'}</p>
+                <p className="mt-1 text-zinc-400">{currentGym?.location ?? 'No location available'}</p>
+                <p className="mt-1 text-zinc-400">{currentGym?.description ?? 'Sign up with a gym referral code to join a gym leaderboard.'}</p>
+              </div>
+              <label className="block text-sm text-zinc-300">
+                New referral code
+                <input
+                  value={gymCode}
+                  onChange={(e) => {
+                    setGymCode(e.target.value);
+                    setGymError('');
+                  }}
+                  className="mt-3 w-full rounded-3xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none focus:border-glow"
+                />
+              </label>
+              <button type="button" onClick={handleGymCodeUpdate} className="btn-primary">Update gym</button>
+              {gymError && <p className={`text-sm ${gymError.includes('successfully') ? 'text-emerald-300' : 'text-amber-300'}`}>{gymError}</p>}
+
               <div>
                 <p className="text-sm uppercase tracking-[0.35em] text-zinc-400">Edit schedule</p>
                 <p className="mt-2 text-zinc-300">Adjust your gym days and maintain your streak strategy.</p>

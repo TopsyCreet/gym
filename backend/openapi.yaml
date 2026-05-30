@@ -1,0 +1,83 @@
+openapi: 3.0.1
+info:
+  title: Irongate Backend API
+  version: 0.1.0
+servers:
+  - url: https://{your-supabase-functions-base}
+paths:
+  /referral/validate:
+    post:
+      summary: Validate a gym referral code
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                code:
+                  type: string
+      responses:
+        '200':
+          description: gym found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  gymId:
+                    type: string
+                  name:
+                    type: string
+        '404':
+          description: not found
+  /checkin/start:
+    post:
+      summary: Start a check-in (creates checkin record + nonce)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                lat:
+                  type: number
+                lng:
+                  type: number
+                gymId:
+                  type: string
+      responses:
+        '200':
+          description: checkin started
+  /checkin/complete:
+    post:
+      summary: Complete a check-in (validate duration & distance)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                checkinId:
+                  type: string
+                lat:
+                  type: number
+                lng:
+                  type: number
+                nonce:
+                  type: string
+      responses:
+        '200':
+          description: checkin verified
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

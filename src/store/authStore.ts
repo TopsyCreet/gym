@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { dummyUsers } from '../data/dummyUsers';
 import { challenges } from '../data/challenges';
 import { defaultWorkoutPlan, WorkoutType } from '../data/workoutPlans';
+import { gyms } from '../data/gyms';
 
 export type AttendanceHistory = Record<string, boolean>;
 export type DailyChallengeState = {
@@ -19,6 +20,7 @@ export type UserProfile = {
   rankTitle: string;
   schedule: string[];
   workoutPlan: Record<string, WorkoutType>;
+  gymId: string;
   xp: number;
   level: number;
   streak: number;
@@ -39,7 +41,7 @@ type AppState = {
   error: string | null;
   demoMode: boolean;
   init: () => void;
-  signUp: (profile: Omit<UserProfile, 'id' | 'xp' | 'level' | 'streak' | 'longestStreak' | 'checkIns' | 'challengesCompleted' | 'attendanceHistory' | 'dailyChallenges' | 'freezeTokens' | 'achievements' | 'lastCheckInDate'>) => void;
+  signUp: (profile: Omit<UserProfile, 'id' | 'xp' | 'level' | 'streak' | 'longestStreak' | 'checkIns' | 'challengesCompleted' | 'attendanceHistory' | 'dailyChallenges' | 'freezeTokens' | 'achievements' | 'lastCheckInDate' | 'workoutPlan'> & { gymId: string; workoutPlan?: Record<string, WorkoutType> }) => void;
   login: (email: string, password: string) => boolean;
   logout: () => void;
   updateUser: (user: UserProfile) => void;
@@ -80,6 +82,7 @@ const buildDemoUser = (): UserProfile => {
     rankTitle: 'Shadow Monarch',
     schedule: ['Mon', 'Wed', 'Fri', 'Sat'],
     workoutPlan: defaultWorkoutPlan,
+    gymId: gyms[0].id,
     xp,
     level: 4,
     streak,
@@ -107,6 +110,7 @@ const seedUsers = (): UserProfile[] => {
       rankTitle: user.rankTitle,
       schedule: user.schedule,
       workoutPlan: defaultWorkoutPlan,
+      gymId: gyms[index % gyms.length].id,
       xp: user.xp,
       level: user.level,
       streak: user.streak,
@@ -135,7 +139,8 @@ export const useAuthStore = create<AppState>((set, get) => ({
       const parsed = JSON.parse(raw) as { users: UserProfile[]; currentUserId: string | null };
       const normalizedUsers = parsed.users.map((user) => ({
         ...user,
-        workoutPlan: user.workoutPlan ?? defaultWorkoutPlan
+        workoutPlan: user.workoutPlan ?? defaultWorkoutPlan,
+        gymId: user.gymId ?? gyms[0].id
       }));
       set({ users: normalizedUsers, currentUserId: parsed.currentUserId, loading: false });
       return;
@@ -176,8 +181,9 @@ export const useAuthStore = create<AppState>((set, get) => ({
       freezeTokens: 0,
       achievements: ['First Signup'],
       lastCheckInDate: undefined,
-      workoutPlan: defaultWorkoutPlan,
-      ...profile
+      ...profile,
+      workoutPlan: profile.workoutPlan ?? defaultWorkoutPlan,
+      gymId: profile.gymId
     };
     const users = [...state.users, newUser];
     set({ users, currentUserId: id });

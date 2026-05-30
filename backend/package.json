@@ -1,0 +1,12 @@
+{
+  "name": "irongate-backend",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "echo 'Build handled by Supabase CLI'",
+    "start": "echo 'Run functions via supabase dev'"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.0.0"
+  }
+}

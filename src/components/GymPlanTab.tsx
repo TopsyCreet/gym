@@ -24,7 +24,7 @@ export default function GymPlanTab({ workoutPlan, onUpdate }: GymPlanTabProps) {
   };
 
   const handleReset = () => {
-    setTempPlan(workoutPlan);
+    setTempPlan(workoutPlan ?? defaultWorkoutPlan);
   };
 
   const days = daysOfWeek.slice(1).concat(daysOfWeek[0]);
