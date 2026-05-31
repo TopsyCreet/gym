@@ -1,16 +1,35 @@
+import { findGymByCode } from '../data/gyms';
+
 const API_BASE = import.meta.env.VITE_API_BASE || 'https://your-supabase-functions.example.com';
+const useRemoteReferral = !API_BASE.includes('your-supabase-functions.example.com');
 
 type ReferralResponse = { gymId: string; name: string; location?: string; description?: string };
 
 export async function validateReferral(code: string): Promise<ReferralResponse | null> {
-  const res = await fetch(`${API_BASE}/referral/validate`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ code })
-  });
+  const normalized = code.trim();
+  if (!normalized) return null;
 
-  if (!res.ok) return null;
-  return res.json();
+  if (!useRemoteReferral) {
+    const gym = findGymByCode(normalized);
+    return gym ? { gymId: gym.id, name: gym.name, location: gym.location, description: gym.description } : null;
+  }
+
+  try {
+    const res = await fetch(`${API_BASE}/referral/validate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code: normalized })
+    });
+
+    if (!res.ok) {
+      const gym = findGymByCode(normalized);
+      return gym ? { gymId: gym.id, name: gym.name, location: gym.location, description: gym.description } : null;
+    }
+    return res.json();
+  } catch {
+    const gym = findGymByCode(normalized);
+    return gym ? { gymId: gym.id, name: gym.name, location: gym.location, description: gym.description } : null;
+  }
 }
 
 export async function startCheckin(lat: number, lng: number, gymId: string, token: string) {
