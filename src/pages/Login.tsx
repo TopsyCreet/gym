@@ -8,19 +8,20 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [message, setMessage] = useState('');
   const login = useAuthStore((state) => state.login);
+  const authError = useAuthStore((state) => state.error);
   const user = useAuthStore((state) => state.getUser());
 
   useEffect(() => {
     if (user) navigate('/dashboard');
   }, [user, navigate]);
 
-  const handleSubmit = (event: FormEvent) => {
+  const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
-    const success = login(email, password);
+    const success = await login(email, password);
     if (success) {
       navigate('/dashboard');
     } else {
-      setMessage('Invalid credentials. Use demo@irongate.app / demo1234.');
+      setMessage(authError || 'Invalid credentials. Use demo@irongate.app / demo1234.');
     }
   };
 
@@ -59,7 +60,7 @@ export default function Login() {
             <button type="submit" className="btn-primary">Sign In</button>
             <button type="button" onClick={handleDemo} className="btn-secondary">Auto Fill Demo</button>
           </div>
-          {message && <p className="text-sm text-amber-300">{message}</p>}
+          {(message || authError) && <p className="text-sm text-amber-300">{message || authError}</p>}
         </form>
       </div>
     </div>
