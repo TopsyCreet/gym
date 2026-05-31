@@ -1,55 +1,88 @@
 # Vercel Deployment Guide
 
-This guide explains how to deploy the `irongate` app to Vercel from a new GitHub repository.
+This guide explains how to deploy the `irongate` app to Vercel.
 
-## 1. Push your project to GitHub
+## Prerequisites
 
-1. Create a new repository on GitHub.
-2. In your local repo:
+- GitHub account with the repo pushed to `main` branch
+- Supabase project with email confirmations enabled
+- Vercel account
 
-```bash
-cd c:\Users\ASUS\Downloads\gym
-git init
-git remote add origin https://github.com/<your-username>/<your-repo>.git
-git add .
-git commit -m "Initial commit"
-git push -u origin main
-```
-
-## 2. Connect the repo on Vercel
+## 1. Create a Vercel project
 
 1. Go to https://vercel.com/new
-2. Choose your GitHub repository.
-3. In the project settings, use:
-   - **Framework Preset**: Vite
-   - **Build Command**: `npm run build`
-   - **Output Directory**: `dist`
+2. Select your `TopsyCreet/gym` repository (or your fork)
+3. Choose the `main` branch
+4. Framework: **Vite** (should auto-detect)
+
+## 2. Configure build settings
+
+Vercel should auto-detect these, but confirm:
+
+| Setting | Value |
+|---------|-------|
+| **Build Command** | `npm run build` |
+| **Output Directory** | `dist` |
+| **Root Directory** | `./` |
 
 ## 3. Add environment variables
 
-If your app uses Supabase or other secrets, add them in the Vercel dashboard under `Settings > Environment Variables`.
+In the Vercel project settings, go to **Environment Variables** and add:
 
-Example variables:
+```
+VITE_SUPABASE_URL=https://kswftzonddsthleqwghb.supabase.co
+VITE_SUPABASE_ANON_KEY=sb_publishable_NNOobWdfYHDhAxLbOQQqBQ_t9RhV0xa
+```
 
-- `VITE_SUPABASE_URL`
-- `VITE_SUPABASE_ANON_KEY`
+**For Production and Preview environments**.
 
-Be sure to also include any other keys used by your app.
+> ⚠️ These are your Supabase public/anon keys—they are safe to share as they're read-only. Keep your Supabase service role key (admin key) secret.
 
-## 4. Deploy and test
+## 4. Configure Supabase (one-time setup)
 
-1. Trigger a deployment by pushing a new commit.
-2. Visit the Vercel URL to verify the app loads.
-3. Test the signup flow and confirm email page.
+1. Go to your Supabase project dashboard.
+2. Under **Authentication > Providers > Email**:
+   - Enable **Confirm email**
+   - Set **Site URL** to your Vercel deployment URL (or custom domain).
+   - Example: `https://gym-abc123.vercel.app`
 
-## 5. Update and retest
+3. Under **Email Templates** (if needed):
+   - Verify the default confirmation email looks good.
+   - Or customize the "Confirm signup" template.
 
-For every change you want to test:
+## 5. Deploy
+
+1. Click **Deploy** in Vercel.
+2. Wait for the build to complete (watch the build logs).
+3. Once deployed, visit your Vercel URL.
+
+## 6. Test the signup flow
+
+1. Open the deployed app.
+2. Click **Sign Up**.
+3. Fill in the form and complete onboarding.
+4. You should see the **Confirm Email** page.
+5. Check your email (or spam folder) for the confirmation link.
+6. Click the confirmation link—it should activate your account.
+7. Return to the app and log in.
+
+## 7. Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| Build fails | Check build logs in Vercel > Deployments. Verify TypeScript compiles locally: `npm run build` |
+| Env vars not loading | Confirm they're added to **Production** environment in Vercel settings. Redeploy if needed. |
+| Email not arriving | Check Supabase logs. Verify **Site URL** is set. Try spam folder. |
+| Confirmation link doesn't work | Ensure Supabase Site URL matches your Vercel domain. Re-deploy to Supabase config if changed. |
+
+## 8. Update and redeploy
+
+Push changes to `main` and Vercel auto-deploys:
 
 ```bash
 git add .
-git commit -m "Update signup confirmation flow"
-git push
+git commit -m "Fix signup flow"
+git push origin main
 ```
 
-Vercel will automatically deploy the new build.
+Check the Vercel dashboard for deployment status.
