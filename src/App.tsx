@@ -6,6 +6,7 @@ import Navbar from './components/Navbar';
 import Landing from './pages/Landing';
 import Signup from './pages/Signup';
 import Login from './pages/Login';
+import ConfirmEmail from './pages/ConfirmEmail';
 import Dashboard from './pages/Dashboard';
 import Leaderboard from './pages/Leaderboard';
 import Profile from './pages/Profile';
@@ -36,6 +37,7 @@ function App() {
             <Route path="/" element={<Landing />} />
             <Route path="/signup" element={<Signup />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/confirm-email" element={<ConfirmEmail />} />
             <Route path="/dashboard" element={user ? <Dashboard /> : <Navigate to="/login" />} />
             <Route path="/leaderboard" element={user ? <Leaderboard /> : <Navigate to="/login" />} />
             <Route path="/profile" element={user ? <Profile /> : <Navigate to="/login" />} />

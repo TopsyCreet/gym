@@ -39,6 +39,21 @@ npm run dev
 npm run build
 ```
 
+## Deploying to Vercel
+
+1. Create a new GitHub repository and push this project.
+2. On Vercel, connect the new repository.
+3. Configure the project settings:
+   - Build Command: `npm run build`
+   - Output Directory: `dist`
+4. Add your environment variables in Vercel (for Supabase or auth if used):
+   - `VITE_SUPABASE_URL`
+   - `VITE_SUPABASE_ANON_KEY`
+   - any other secret variables from your `.env` file
+5. Deploy and open the site.
+
+> Note: client-side routing is handled by `vercel.json`, so refreshes on routes like `/signup` and `/confirm-email` will work.
+
 ## Project structure
 
 - `src/pages` — main application pages, including Dashboard, Profile, Leaderboard, and authentication

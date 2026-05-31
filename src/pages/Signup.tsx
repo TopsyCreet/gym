@@ -66,13 +66,22 @@ export default function Signup() {
     setStep((value) => value + 1);
   };
 
-  const handleSignup = () => {
+  const handleSignup = async () => {
     if (!gym) {
       setError('Your gym referral code must be valid before signup completes.');
       return;
     }
 
-    signUp({ name, email, password, avatar, rankTitle, schedule, gymId: gym.id });
+    setError('');
+    const result = await signUp({ name, email, password, avatar, rankTitle, schedule, gymId: gym.id });
+    if (!result.success) {
+      setError(result.message ?? 'Signup failed.');
+      return;
+    }
+    if (result.needsConfirmation) {
+      navigate('/confirm-email', { state: { email } });
+      return;
+    }
     navigate('/dashboard');
   };
 
@@ -109,6 +118,7 @@ export default function Signup() {
                 Gym Referral Code
                 <input value={gymCode} onChange={(e) => setGymCode(e.target.value)} className="mt-3 w-full rounded-3xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none focus:border-glow" />
               </label>
+              <p className="text-xs text-zinc-500">Test referral codes: IRONGATE, SHADOW, TITAN, APEX, VANGUARD.</p>
               {gymCode && (
                 <p className={`text-sm mt-2 ${gym ? 'text-emerald-300' : 'text-amber-300'}`}>
                   {gym ? `Linked to ${gym.name} (${gym.location})` : 'Referral code not recognized yet.'}
