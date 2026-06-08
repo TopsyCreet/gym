@@ -29,14 +29,14 @@ Vercel should auto-detect these, but confirm:
 
 In the Vercel project settings, go to **Environment Variables** and add:
 
+Add the following environment variables in your Vercel project settings (Production & Preview). Replace the placeholders with values from your Supabase project or `.env.example`.
+
 ```
-VITE_SUPABASE_URL=https://kswftzonddsthleqwghb.supabase.co
-VITE_SUPABASE_ANON_KEY=sb_publishable_NNOobWdfYHDhAxLbOQQqBQ_t9RhV0xa
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=sb_publishable_your_publishable_key
 ```
 
-**For Production and Preview environments**.
-
-> ⚠️ These are your Supabase public/anon keys—they are safe to share as they're read-only. Keep your Supabase service role key (admin key) secret.
+Note: publishable (anon) keys are safe for frontend use; keep `SUPABASE_SERVICE_ROLE_KEY` (server/admin) secret and only set it in server-side environment secrets (e.g., Supabase Functions or Vercel Environment Variables for serverless functions).
 
 ## 4. Configure Supabase (one-time setup)
 

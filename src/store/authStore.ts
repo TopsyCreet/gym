@@ -228,6 +228,20 @@ export const useAuthStore = create<AppState>((set, get) => ({
     }
   },
   login: async (email, password) => {
+    if (email === 'demo@irongate.app' && password === 'demo1234') {
+      const demoUser = get().users.find((user) => user.id === 'demo-user');
+      if (demoUser) {
+        set({ currentUserId: demoUser.id, demoMode: true, error: null });
+        return true;
+      }
+      const users = seedUsers();
+      const demo = users.find((user) => user.id === 'demo-user');
+      if (demo) {
+        set({ users, currentUserId: demo.id, demoMode: true, error: null });
+        return true;
+      }
+    }
+
     try {
       if (!supabaseConfigured || !supabase) {
         set({ error: 'No Supabase backend configured' });

@@ -1,26 +1,17 @@
 import { useMemo, useState } from 'react';
 import { useAuthStore } from '../store/authStore';
-import { gyms } from '../data/gyms';
 
-type LeaderboardTableProps = {
-  scope?: 'global' | 'gym';
-  gymId?: string | null;
-};
-
-export default function LeaderboardTable({ scope = 'global', gymId }: LeaderboardTableProps) {
+export default function LeaderboardTable() {
   const users = useAuthStore((state) => state.users);
   const currentUser = useAuthStore((state) => state.getUser());
   const [tab, setTab] = useState<'streak' | 'xp' | 'challenges'>('streak');
 
-  const gymMap = useMemo(() => Object.fromEntries(gyms.map((gym) => [gym.id, gym])), []);
-
   const sorted = useMemo(() => {
-    const list = scope === 'gym' && gymId ? users.filter((user) => user.gymId === gymId) : users;
-    const sortedList = [...list];
-    if (tab === 'streak') return sortedList.sort((a, b) => b.streak - a.streak);
-    if (tab === 'xp') return sortedList.sort((a, b) => b.xp - a.xp);
-    return sortedList.sort((a, b) => b.challengesCompleted - a.challengesCompleted);
-  }, [tab, users, scope, gymId]);
+    const list = [...users];
+    if (tab === 'streak') return list.sort((a, b) => b.streak - a.streak);
+    if (tab === 'xp') return list.sort((a, b) => b.xp - a.xp);
+    return list.sort((a, b) => b.challengesCompleted - a.challengesCompleted);
+  }, [tab, users]);
 
   return (
     <div className="rounded-3xl border border-white/10 bg-surface2 p-5 shadow-soft">
@@ -48,7 +39,6 @@ export default function LeaderboardTable({ scope = 'global', gymId }: Leaderboar
             <tr className="border-b border-white/10 text-zinc-500">
               <th className="py-3 pr-6">Rank</th>
               <th className="py-3 pr-6">Name</th>
-              {scope === 'global' && <th className="py-3 pr-6">Gym</th>}
               <th className="py-3 pr-6">Score</th>
             </tr>
           </thead>
@@ -57,9 +47,6 @@ export default function LeaderboardTable({ scope = 'global', gymId }: Leaderboar
               <tr key={user.id} className={`transition ${currentUser?.id === user.id ? 'bg-glow/10 text-white' : 'hover:bg-white/5'}`}>
                 <td className="py-4 pr-6 font-semibold">{index < 3 ? ['🥇', '🥈', '🥉'][index] : `#${index + 1}`}</td>
                 <td className="py-4 pr-6">{user.name}</td>
-                {scope === 'global' && (
-                  <td className="py-4 pr-6 text-zinc-400">{gymMap[user.gymId]?.name ?? 'Independent'}</td>
-                )}
                 <td className="py-4 pr-6 font-semibold text-white">
                   {tab === 'streak' ? `${user.streak}d` : tab === 'xp' ? `${user.xp} XP` : `${user.challengesCompleted}`}
                 </td>

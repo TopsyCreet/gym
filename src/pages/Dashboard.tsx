@@ -90,7 +90,7 @@ export default function Dashboard() {
             </div>
             <div className="mt-6 grid gap-4 md:grid-cols-3">
               {user.dailyChallenges.map((challenge) => (
-                <ChallengeCard key={challenge.id} id={challenge.id} completed={challenge.completed} startedAt={challenge.startedAt} />
+                <ChallengeCard key={challenge.id} id={challenge.id} completed={challenge.completed} />
               ))}
             </div>
           </section>

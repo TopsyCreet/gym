@@ -15,7 +15,6 @@ export type GymState = {
   checkInToday: () => Promise<void>;
   toggleAtGymOverride: () => void;
   assignDailyChallenges: () => void;
-  isAtGym: () => Promise<boolean>;
 };
 
 const GYM_COORDS = { latitude: 6.5244, longitude: 3.3792 };
@@ -59,13 +58,6 @@ export const useGymStore = create<GymState>((set, get) => ({
     const user = auth.getUser();
     if (!user) return;
     const today = new Date().toISOString().slice(0, 10);
-    
-    // Check if already checked in today
-    if (user.lastCheckInDate === today) {
-      set({ lastCheckInMessage: 'You\'ve already checked in today. Come back tomorrow!' });
-      return;
-    }
-    
     const ok = await get().verifyGymLocation();
     if (!ok) {
       set({ lastCheckInMessage: 'Check-in failed. Move closer to the gym.' });
@@ -83,9 +75,5 @@ export const useGymStore = create<GymState>((set, get) => ({
     const selected = [...challenges].sort(() => Math.random() - 0.5).slice(0, 3);
     const dailyChallenges = selected.map((challenge) => ({ id: challenge.id, completed: false }));
     auth.updateUser({ ...user, dailyChallenges, lastCheckInDate: today });
-  },
-  isAtGym: async () => {
-    const isVerified = await get().verifyGymLocation();
-    return isVerified;
   }
 }));
