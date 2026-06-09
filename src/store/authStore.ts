@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { supabase, supabaseConfigured } from '../lib/supabaseClient';
+import { uploadAvatar } from '../lib/uploadAvatar';
 import { dummyUsers } from '../data/dummyUsers';
 import { challenges } from '../data/challenges';
 import { defaultWorkoutPlan, WorkoutType } from '../data/workoutPlans';
@@ -33,6 +34,7 @@ export type UserProfile = {
   freezeTokens: number;
   lastCheckInDate?: string;
   achievements: string[];
+  phone: string;
 };
 
 type AppState = {
@@ -42,7 +44,7 @@ type AppState = {
   error: string | null;
   demoMode: boolean;
   init: () => Promise<void>;
-  signUp: (profile: Omit<UserProfile, 'id' | 'xp' | 'level' | 'streak' | 'longestStreak' | 'checkIns' | 'challengesCompleted' | 'attendanceHistory' | 'dailyChallenges' | 'freezeTokens' | 'achievements' | 'lastCheckInDate' | 'workoutPlan'> & { gymId: string; workoutPlan?: Record<string, WorkoutType> }) => Promise<{ success: boolean; message?: string; needsConfirmation?: boolean }>;
+  signUp: (profile: Omit<UserProfile, 'id' | 'xp' | 'level' | 'streak' | 'longestStreak' | 'checkIns' | 'challengesCompleted' | 'attendanceHistory' | 'dailyChallenges' | 'freezeTokens' | 'achievements' | 'lastCheckInDate' | 'workoutPlan'> & { gymId: string; workoutPlan?: Record<string, WorkoutType>; avatarFile?: File; phone?: string }) => Promise<{ success: boolean; message?: string; needsConfirmation?: boolean }>;
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => Promise<void>;
   updateUser: (user: UserProfile) => void;
@@ -94,7 +96,8 @@ const buildDemoUser = (): UserProfile => {
     dailyChallenges: challenges.slice(0, 3).map((challenge) => ({ id: challenge.id, completed: false })),
     freezeTokens: 2,
     achievements: ['First Check-in', '7-Day Streak'],
-    lastCheckInDate: new Date().toISOString().slice(0, 10)
+    lastCheckInDate: new Date().toISOString().slice(0, 10),
+    phone: '',
   };
 };
 
@@ -122,7 +125,8 @@ const seedUsers = (): UserProfile[] => {
       dailyChallenges: challenges.slice(0, 3).map((challenge) => ({ id: challenge.id, completed: false })),
       freezeTokens: Math.max(0, Math.floor(user.streak / 7)),
       achievements: ['Demo Warrior'],
-      lastCheckInDate: undefined
+      lastCheckInDate: undefined,
+      phone: '',
     }))
   ];
   return built;
@@ -148,7 +152,8 @@ const mapProfileToUser = (profile: any, email: string): UserProfile => ({
   dailyChallenges: [],
   freezeTokens: 0,
   achievements: profile.achievements ?? [],
-  lastCheckInDate: profile.last_checkin_date ?? undefined
+  lastCheckInDate: profile.last_checkin_date ?? undefined,
+  phone: profile.phone ?? '',
 });
 
 const buildFallbackSupabaseUser = (user: { id: string; email: string | null }, gymId: string): UserProfile => ({
@@ -171,7 +176,8 @@ const buildFallbackSupabaseUser = (user: { id: string; email: string | null }, g
   dailyChallenges: [],
   freezeTokens: 0,
   achievements: [],
-  lastCheckInDate: undefined
+  lastCheckInDate: undefined,
+  phone: '',
 });
 
 export const useAuthStore = create<AppState>((set, get) => ({
@@ -217,7 +223,8 @@ export const useAuthStore = create<AppState>((set, get) => ({
             dailyChallenges: [],
             freezeTokens: 0,
             achievements: profile.achievements ?? [],
-            lastCheckInDate: profile.last_checkin_date ?? undefined
+            lastCheckInDate: profile.last_checkin_date ?? undefined,
+            phone: profile.phone ?? '',
           };
 
           set((s) => ({ users: [mapped, ...s.users.filter((u) => u.id !== mapped.id)], currentUserId: userId }));
@@ -316,7 +323,8 @@ export const useAuthStore = create<AppState>((set, get) => ({
           dailyChallenges: [],
           freezeTokens: 0,
           achievements: [],
-          lastCheckInDate: undefined
+          lastCheckInDate: undefined,
+          phone: '',
         };
       }
 
@@ -357,7 +365,8 @@ export const useAuthStore = create<AppState>((set, get) => ({
         dailyChallenges: [],
         freezeTokens: 0,
         achievements: ['First Signup'],
-        lastCheckInDate: undefined
+        lastCheckInDate: undefined,
+        phone: profile.phone ?? '',
       };
       const users = [...state.users, newUser];
       set({ users, currentUserId: id });
@@ -365,7 +374,17 @@ export const useAuthStore = create<AppState>((set, get) => ({
     }
 
     try {
-      const { data, error } = await supabase.auth.signUp({ email: profile.email, password: profile.password });
+      const { data, error } = await supabase.auth.signUp({
+        email: profile.email,
+        password: profile.password,
+        options: {
+          data: {
+            display_name: profile.name,
+            full_name: profile.name,
+            phone: profile.phone ?? '',
+          },
+        },
+      });
       if (error || !data.user) {
         const message = error?.code === 'email_not_confirmed'
           ? 'Signup succeeded, but email confirmation is required before login.'
@@ -374,10 +393,15 @@ export const useAuthStore = create<AppState>((set, get) => ({
         return { success: false, message };
       }
       const userId = data.user.id;
+      let avatarUrl = profile.avatar;
+      if (profile.avatarFile) {
+        const uploaded = await uploadAvatar(profile.avatarFile, userId);
+        if (uploaded) avatarUrl = uploaded;
+      }
       const row = {
         id: userId,
         name: profile.name,
-        avatar: profile.avatar,
+        avatar: avatarUrl,
         rank_title: profile.rankTitle,
         schedule: profile.schedule,
         workout_plan: profile.workoutPlan ?? defaultWorkoutPlan,
@@ -390,7 +414,8 @@ export const useAuthStore = create<AppState>((set, get) => ({
         challenges_completed: 0,
         attendance_history: {},
         achievements: ['First Signup'],
-        last_checkin_date: null
+        last_checkin_date: null,
+        phone: profile.phone ?? '',
       };
 
       let insertError = null;
@@ -406,7 +431,7 @@ export const useAuthStore = create<AppState>((set, get) => ({
         name: profile.name,
         email: profile.email,
         password: '',
-        avatar: profile.avatar,
+        avatar: avatarUrl,
         rankTitle: profile.rankTitle,
         schedule: profile.schedule,
         workoutPlan: profile.workoutPlan ?? defaultWorkoutPlan,
@@ -421,7 +446,8 @@ export const useAuthStore = create<AppState>((set, get) => ({
         dailyChallenges: [],
         freezeTokens: 0,
         achievements: ['First Signup'],
-        lastCheckInDate: undefined
+        lastCheckInDate: undefined,
+        phone: profile.phone ?? '',
       };
       set((s) => ({ users: [...s.users, newUser], currentUserId: data.session?.user.id ?? s.currentUserId, error: null }));
 

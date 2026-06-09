@@ -22,6 +22,8 @@ export default function Signup() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [avatar, setAvatar] = useState('');
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [phone, setPhone] = useState('');
   const [schedule, setSchedule] = useState<string[]>(['Mon', 'Wed']);
   const [rankTitle, setRankTitle] = useState('Novice');
   const [gymId] = useState(gyms[0]?.id ?? 'gym-1');
@@ -33,6 +35,7 @@ export default function Signup() {
   const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
+      setAvatarFile(file);
       const base64 = await toBase64(file);
       setAvatar(base64);
     }
@@ -52,7 +55,7 @@ export default function Signup() {
   };
 
   const handleSignup = async () => {
-    const result = await signUp({ name, email, password, avatar, rankTitle, schedule, gymId });
+    const result = await signUp({ name, email, password, avatar, rankTitle, schedule, gymId, avatarFile: avatarFile ?? undefined, phone });
     if (!result.success) {
       setError(result.message ?? 'Signup failed.');
       return;
@@ -88,6 +91,10 @@ export default function Signup() {
               <label className="block text-sm text-zinc-300">
                 Password
                 <input value={password} onChange={(e) => setPassword(e.target.value)} className="mt-3 w-full rounded-3xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none focus:border-glow" type="password" />
+              </label>
+              <label className="block text-sm text-zinc-300">
+                Phone Number <span className="text-zinc-600">(optional)</span>
+                <input value={phone} onChange={(e) => setPhone(e.target.value)} className="mt-3 w-full rounded-3xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none focus:border-glow" type="tel" placeholder="+1 555 000 0000" />
               </label>
               <label className="block text-sm text-zinc-300">
                 Upload Avatar
