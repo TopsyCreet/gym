@@ -156,29 +156,6 @@ const mapProfileToUser = (profile: any, email: string): UserProfile => ({
   phone: profile.phone ?? '',
 });
 
-const buildFallbackSupabaseUser = (user: { id: string; email: string | null }, gymId: string): UserProfile => ({
-  id: user.id,
-  name: '',
-  email: user.email ?? '',
-  password: '',
-  avatar: '',
-  rankTitle: 'Initiate',
-  schedule: [],
-  workoutPlan: defaultWorkoutPlan,
-  gymId,
-  xp: 0,
-  level: 1,
-  streak: 0,
-  longestStreak: 0,
-  checkIns: 0,
-  challengesCompleted: 0,
-  attendanceHistory: {},
-  dailyChallenges: [],
-  freezeTokens: 0,
-  achievements: [],
-  lastCheckInDate: undefined,
-  phone: '',
-});
 
 export const useAuthStore = create<AppState>((set, get) => ({
   users: [],
@@ -246,6 +223,9 @@ export const useAuthStore = create<AppState>((set, get) => ({
             phone: profile.phone ?? '',
           };
 
+          // Preserve dailyChallenges from existing in-memory state — not stored in Supabase
+          const existing = get().users.find((u) => u.id === userId);
+          mapped.dailyChallenges = existing?.dailyChallenges ?? [];
           set((s) => ({ users: [mapped, ...s.users.filter((u) => u.id !== mapped.id)], currentUserId: userId }));
         }
       }
@@ -449,7 +429,7 @@ export const useAuthStore = create<AppState>((set, get) => ({
 
       let insertError = null;
       try {
-        const { error: profileError } = await supabase.from('profiles').insert([row]);
+        const { error: profileError } = await supabase.from('profiles').upsert([row], { onConflict: 'id' });
         if (profileError) insertError = profileError;
       } catch (err: any) {
         insertError = err;
@@ -498,6 +478,7 @@ export const useAuthStore = create<AppState>((set, get) => ({
     const state = get();
     const users = state.users.map((item) => (item.id === user.id ? user : item));
     set({ users });
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ users, currentUserId: state.currentUserId }));
     if (!supabaseConfigured || !supabase) {
       return;
     }
@@ -592,6 +573,10 @@ export const useAuthStore = create<AppState>((set, get) => ({
     if (!user) return;
     const newHistory = { ...user.attendanceHistory, [date]: true };
     const currentStreak = user.streak + 1;
+    // Generate trials on first check-in if none exist (new users or Supabase users)
+    const dailyChallenges = user.dailyChallenges.length > 0
+      ? user.dailyChallenges
+      : challenges.slice(0, 3).map((c) => ({ id: c.id, completed: false }));
     const updated = {
       ...user,
       attendanceHistory: newHistory,
@@ -600,6 +585,7 @@ export const useAuthStore = create<AppState>((set, get) => ({
       checkIns: user.checkIns + 1,
       xp: user.xp + 100,
       lastCheckInDate: date,
+      dailyChallenges,
       freezeTokens: user.freezeTokens + (currentStreak % 7 === 0 ? 1 : 0),
       achievements: Array.from(new Set([...user.achievements, 'first-checkin']))
     };
