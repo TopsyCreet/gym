@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { supabase, supabaseConfigured } from '../lib/supabaseClient';
-import { uploadAvatar } from '../lib/uploadAvatar';
+import { uploadAvatar, uploadAvatarFromBase64 } from '../lib/uploadAvatar';
 import { dummyUsers } from '../data/dummyUsers';
 import { challenges } from '../data/challenges';
 import { defaultWorkoutPlan, WorkoutType } from '../data/workoutPlans';
@@ -329,6 +329,24 @@ export const useAuthStore = create<AppState>((set, get) => ({
         };
       }
 
+      // Recover avatar that couldn't be saved during email-confirmation signup
+      if (!mapped.avatar) {
+        try {
+          const pendingBase64 = localStorage.getItem(`prime_pending_avatar_${userId}`);
+          if (pendingBase64) {
+            // Try uploading to Storage now that the user is authenticated
+            const uploaded = await uploadAvatarFromBase64(pendingBase64, userId);
+            const avatarUrl = uploaded ?? pendingBase64; // fall back to base64 if Storage fails
+            mapped.avatar = avatarUrl;
+            await supabase.from('profiles').update({ avatar: avatarUrl }).eq('id', userId);
+            localStorage.removeItem(`prime_pending_avatar_${userId}`);
+          }
+        } catch {}
+      } else {
+        // Avatar already set — clean up any stale pending entry
+        try { localStorage.removeItem(`prime_pending_avatar_${userId}`); } catch {}
+      }
+
       set((s) => ({ users: [mapped, ...s.users.filter((u) => u.id !== mapped.id)], currentUserId: userId, error: null }));
       return true;
     } catch (err: any) {
@@ -461,6 +479,14 @@ export const useAuthStore = create<AppState>((set, get) => ({
       set((s) => ({ users: [...s.users, newUser], currentUserId: data.session?.user.id ?? s.currentUserId, error: null }));
 
       const needsConfirmation = !data.session;
+      // If email confirmation is required the user isn't authenticated yet, so the
+      // Storage upload and DB upsert above both fail silently due to RLS.
+      // Save the base64 avatar locally so login() can recover and re-upload it.
+      if (needsConfirmation && profile.avatar) {
+        try {
+          localStorage.setItem(`prime_pending_avatar_${userId}`, profile.avatar);
+        } catch {}
+      }
       const message = needsConfirmation
         ? 'Account created. Please confirm your email before logging in.'
         : 'Welcome to Prime. Redirecting to your dashboard.';
