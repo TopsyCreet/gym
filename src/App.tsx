@@ -12,6 +12,7 @@ import Dashboard from './pages/Dashboard';
 import Leaderboard from './pages/Leaderboard';
 import Profile from './pages/Profile';
 import Admin from './pages/Admin';
+import GymPortal from './pages/GymPortal';
 
 function App() {
   const location = useLocation();
@@ -28,7 +29,7 @@ function App() {
     return (
       <div
         className="flex min-h-screen items-center justify-center"
-        style={{ background: '#0A0A0A' }}
+        style={{ background: 'var(--bg-base)' }}
       >
         <div
           className="h-8 w-8 animate-spin rounded-full"
@@ -63,6 +64,7 @@ function App() {
           <Route path="/leaderboard" element={user ? <Leaderboard /> : <Navigate to="/login" />} />
           <Route path="/profile" element={user ? <Profile /> : <Navigate to="/login" />} />
           <Route path="/admin" element={<Admin />} />
+          <Route path="/gym-portal" element={<GymPortal />} />
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </motion.main>

@@ -4,28 +4,27 @@ import { useAuthStore } from '../store/authStore';
 import { TrendingUp, BarChart2, Target } from 'lucide-react';
 
 const tabs = [
-  { key: 'streak',     label: 'Streak',   icon: TrendingUp, color: '#D4AF37' },
-  { key: 'xp',         label: 'Points',   icon: BarChart2,  color: '#B3B3B3' },
-  { key: 'challenges', label: 'Trials',   icon: Target,     color: '#2ECC71' },
+  { key: 'streak',     label: 'Streak',  icon: TrendingUp, color: '#D4AF37' },
+  { key: 'xp',         label: 'Points',  icon: BarChart2,  color: '#A1A1AA' },
+  { key: 'challenges', label: 'Trials',  icon: Target,     color: '#2ECC71' },
 ] as const;
 
 type Tab = typeof tabs[number]['key'];
 
-const topThreeStyle: Record<number, { bg: string; text: string; border: string }> = {
-  0: { bg: 'rgba(212,175,55,0.14)', text: '#D4AF37', border: 'rgba(212,175,55,0.3)' },
-  1: { bg: 'rgba(179,179,179,0.1)',  text: '#B3B3B3', border: 'rgba(179,179,179,0.25)' },
-  2: { bg: 'rgba(205,133,63,0.1)',   text: '#CD853F', border: 'rgba(205,133,63,0.25)' },
+const podiumStyle: Record<number, { bg: string; text: string; border: string; numberColor: string }> = {
+  0: { bg: 'rgba(212,175,55,0.12)',  text: '#D4AF37', border: 'rgba(212,175,55,0.25)',  numberColor: '#D4AF37' },
+  1: { bg: 'rgba(161,161,170,0.08)', text: '#A1A1AA', border: 'rgba(161,161,170,0.2)', numberColor: '#A1A1AA' },
+  2: { bg: 'rgba(205,133,63,0.08)',  text: '#CD853F', border: 'rgba(205,133,63,0.2)',  numberColor: '#CD853F' },
 };
 
-const getInitials = (name: string) =>
+const avatarHash = (name: string) => {
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = name.charCodeAt(i) + ((h << 5) - h);
+  return `hsl(${Math.abs(h) % 360}, 18%, 18%)`;
+};
+
+const initials = (name: string) =>
   name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase();
-
-const avatarSeed = (name: string) => {
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
-  const h = Math.abs(hash) % 360;
-  return `hsl(${h}, 25%, 20%)`;
-};
 
 export default function LeaderboardTable() {
   const users = useAuthStore((state) => state.users);
@@ -35,7 +34,7 @@ export default function LeaderboardTable() {
   const sorted = useMemo(() => {
     const list = [...users];
     if (tab === 'streak') return list.sort((a, b) => b.streak - a.streak);
-    if (tab === 'xp') return list.sort((a, b) => b.xp - a.xp);
+    if (tab === 'xp')     return list.sort((a, b) => b.xp - a.xp);
     return list.sort((a, b) => b.challengesCompleted - a.challengesCompleted);
   }, [tab, users]);
 
@@ -43,36 +42,36 @@ export default function LeaderboardTable() {
   const myRank = sorted.findIndex((u) => u.id === currentUser?.id);
 
   return (
-    <div className="card p-0 overflow-hidden">
+    <div className="card overflow-hidden p-0">
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-4 p-5 pb-4">
         <div>
           <p className="label tracking-[0.25em]">Global Standing</p>
           <h2 className="mt-1 text-xl font-black text-white">The Ranks</h2>
         </div>
+
         {/* Tab switcher */}
         <div
-          className="flex gap-1 rounded-xl p-1"
-          style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}
+          className="flex gap-1 rounded-2xl p-1"
+          style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.055)' }}
         >
           {tabs.map((t) => (
             <button
               key={t.key}
               type="button"
               onClick={() => setTab(t.key)}
-              className={`relative flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-colors duration-150 ${
-                tab === t.key ? 'text-white' : 'text-zinc-600 hover:text-zinc-400'
-              }`}
+              className="relative flex items-center gap-1.5 rounded-xl px-3.5 py-1.5 text-xs font-semibold transition-colors duration-150"
+              style={{ color: tab === t.key ? '#fff' : '#3A3A3A' }}
             >
               {tab === t.key && (
                 <motion.span
                   layoutId="tab-bg"
-                  className="absolute inset-0 rounded-lg"
-                  style={{ background: `${t.color}14`, border: `1px solid ${t.color}25` }}
-                  transition={{ type: 'spring', stiffness: 420, damping: 30 }}
+                  className="absolute inset-0 rounded-xl"
+                  style={{ background: `${t.color}10`, border: `1px solid ${t.color}22` }}
+                  transition={{ type: 'spring', stiffness: 480, damping: 34 }}
                 />
               )}
-              <t.icon size={12} style={{ color: tab === t.key ? t.color : undefined }} />
+              <t.icon size={11} style={{ color: tab === t.key ? t.color : undefined }} />
               <span className="relative">{t.label}</span>
             </button>
           ))}
@@ -85,7 +84,7 @@ export default function LeaderboardTable() {
       <div className="divide-y" style={{ borderColor: 'rgba(255,255,255,0.03)' }}>
         {sorted.slice(0, 10).map((user, index) => {
           const isMe = user.id === currentUser?.id;
-          const podium = topThreeStyle[index];
+          const podium = podiumStyle[index];
           const score = tab === 'streak'
             ? `${user.streak}d`
             : tab === 'xp'
@@ -95,48 +94,51 @@ export default function LeaderboardTable() {
           return (
             <motion.div
               key={user.id}
-              initial={{ opacity: 0, x: -8 }}
+              initial={{ opacity: 0, x: -6 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: index * 0.04 }}
+              transition={{ delay: index * 0.035 }}
               className="flex items-center gap-4 px-5 py-3.5 transition-colors duration-150"
-              style={{
-                background: isMe ? 'rgba(212,175,55,0.04)' : 'transparent',
-              }}
-              onMouseEnter={(e) => {
-                if (!isMe) (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.02)';
-              }}
-              onMouseLeave={(e) => {
-                if (!isMe) (e.currentTarget as HTMLElement).style.background = 'transparent';
-              }}
+              style={{ background: isMe ? 'rgba(212,175,55,0.03)' : 'transparent' }}
+              onMouseEnter={(e) => { if (!isMe) (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.018)'; }}
+              onMouseLeave={(e) => { if (!isMe) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
             >
               {/* Rank number */}
               <div
                 className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-black"
                 style={
                   podium
-                    ? { background: podium.bg, color: podium.text, border: `1px solid ${podium.border}` }
-                    : { background: 'rgba(255,255,255,0.03)', color: '#3A3A3A', border: '1px solid rgba(255,255,255,0.05)' }
+                    ? { background: podium.bg, color: podium.numberColor, border: `1px solid ${podium.border}` }
+                    : { background: 'rgba(255,255,255,0.025)', color: '#333333', border: '1px solid rgba(255,255,255,0.05)' }
                 }
               >
                 {index + 1}
               </div>
 
               {/* Avatar */}
-              <div
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white"
-                style={{ background: avatarSeed(user.name), border: '1px solid rgba(255,255,255,0.06)' }}
-              >
-                {getInitials(user.name)}
-              </div>
+              {user.avatar ? (
+                <img
+                  src={user.avatar}
+                  alt={user.name}
+                  className="h-9 w-9 shrink-0 rounded-full object-cover"
+                  style={{ border: isMe ? '1px solid rgba(212,175,55,0.3)' : '1px solid rgba(255,255,255,0.06)' }}
+                />
+              ) : (
+                <div
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white"
+                  style={{ background: avatarHash(user.name), border: '1px solid rgba(255,255,255,0.05)' }}
+                >
+                  {initials(user.name)}
+                </div>
+              )}
 
-              {/* Name */}
+              {/* Name + rank */}
               <div className="min-w-0 flex-1">
                 <p className={`truncate text-sm font-semibold ${isMe ? 'text-white' : 'text-zinc-300'}`}>
                   {user.name}
                   {isMe && (
                     <span
                       className="ml-2 rounded-full px-1.5 py-0.5 text-[10px] font-bold"
-                      style={{ background: 'rgba(212,175,55,0.12)', color: '#D4AF37' }}
+                      style={{ background: 'rgba(212,175,55,0.1)', color: '#D4AF37' }}
                     >
                       You
                     </span>
@@ -147,11 +149,11 @@ export default function LeaderboardTable() {
 
               {/* Score */}
               <span
-                className="shrink-0 rounded-full px-3 py-1 text-xs font-black"
+                className="shrink-0 rounded-full px-3 py-1 text-xs font-black tabular-nums"
                 style={{
-                  background: `${activeTab.color}10`,
+                  background: `${activeTab.color}0d`,
                   color: activeTab.color,
-                  border: `1px solid ${activeTab.color}22`,
+                  border: `1px solid ${activeTab.color}1e`,
                 }}
               >
                 {score}
@@ -161,13 +163,13 @@ export default function LeaderboardTable() {
         })}
       </div>
 
-      {/* Current user rank if outside top 10 */}
+      {/* Your position if outside top 10 */}
       {currentUser && myRank >= 10 && (
         <div
-          className="px-5 py-3"
-          style={{ borderTop: '1px solid rgba(212,175,55,0.08)', background: 'rgba(212,175,55,0.03)' }}
+          className="px-5 py-3.5"
+          style={{ borderTop: '1px solid rgba(212,175,55,0.07)', background: 'rgba(212,175,55,0.02)' }}
         >
-          <p className="text-xs" style={{ color: '#4A4A4A' }}>
+          <p className="text-xs" style={{ color: '#3A3A3A' }}>
             Your standing: <span className="font-bold text-white">#{myRank + 1}</span>
             {' — '}
             {tab === 'streak'

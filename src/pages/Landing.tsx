@@ -1,131 +1,160 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowRight, TrendingUp } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 
-const features = [
+const up = (delay = 0) => ({
+  initial: { opacity: 0, y: 24 },
+  animate: { opacity: 1, y: 0 },
+  transition: { delay, duration: 0.65, ease: [0.22, 1, 0.36, 1] },
+});
+
+const ranks = [
+  { name: 'Initiate', color: '#A1A1AA' },
+  { name: 'Forged',   color: '#CD853F' },
+  { name: 'Vanguard', color: '#4A90D9' },
+  { name: 'Elite',    color: '#2ECC71' },
+  { name: 'Prime',    color: '#D4AF37' },
+  { name: 'Monarch',  color: '#E5C158' },
+];
+
+const pillars = [
   {
-    symbol: '▲',
     title: 'The Streak Engine',
-    detail: 'Every session is proof. Miss a scheduled day and the record resets. Consistency is not optional — it is the product.',
+    body: 'Every session is proof. Miss a scheduled day and the record resets. Consistency is not optional — it is the product.',
     color: '#D4AF37',
+    symbol: '▲',
   },
   {
-    symbol: '◆',
     title: 'Prime Points',
-    detail: 'Every commitment earns progress. Rise from Initiate to Monarch through repeated action, not intention.',
-    color: '#B3B3B3',
+    body: 'Every commitment earns progress. Rise from Initiate to Monarch through repeated action, not intention.',
+    color: '#A1A1AA',
+    symbol: '◆',
   },
   {
-    symbol: '◇',
-    title: 'The Ranks',
-    detail: 'Compete globally on three tracks: Streak, Points, and Trials. Your standing reflects your discipline.',
+    title: 'Global Standing',
+    body: 'Compete across three tracks: Streak, Points, and Commitments. Your standing reflects your discipline.',
     color: '#2ECC71',
+    symbol: '◇',
   },
   {
-    symbol: '⬡',
     title: 'Six Rank Tiers',
-    detail: 'Initiate. Forged. Vanguard. Elite. Prime. Monarch. Each rank is earned — and felt.',
+    body: 'Initiate. Forged. Vanguard. Elite. Prime. Monarch. Each rank is earned — and felt.',
     color: '#4A90D9',
+    symbol: '⬡',
   },
 ];
 
 const stats = [
   { value: '10K+', label: 'Members' },
-  { value: '2.4M', label: 'Commitments Proved' },
-  { value: '97%', label: 'Streak Retention' },
-  { value: '6', label: 'Rank Tiers' },
+  { value: '2.4M', label: 'Sessions Proved' },
+  { value: '97%',  label: 'Streak Retention' },
+  { value: '6',    label: 'Rank Tiers' },
 ];
-
-const mottos = [
-  '"Consistency is status."',
-  '"The standard is set by what you repeat."',
-  '"Small actions become powerful identities."',
-];
-
-const fadeUp = (delay = 0) => ({
-  initial: { opacity: 0, y: 22 },
-  animate: { opacity: 1, y: 0 },
-  transition: { delay, duration: 0.6, ease: [0.22, 1, 0.36, 1] },
-});
 
 export default function Landing() {
   return (
     <div className="mx-auto max-w-7xl">
 
-      {/* ── Hero ─────────────────────────────────────── */}
-      <section className="relative overflow-hidden px-4 pb-20 pt-24 text-center sm:pt-36">
+      {/* ── Hero ──────────────────────────────────────────────── */}
+      <section className="relative overflow-hidden px-4 pb-24 pt-20 text-center sm:pt-40">
 
-        {/* Background glow */}
+        {/* Ambient background */}
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
           <div
-            className="absolute left-1/2 top-0 h-[600px] w-[600px] -translate-x-1/2 -translate-y-1/2 rounded-full"
-            style={{ background: 'radial-gradient(circle, rgba(212,175,55,0.09) 0%, transparent 65%)' }}
+            className="absolute left-1/2 top-0 h-[700px] w-[700px] -translate-x-1/2 -translate-y-1/2 rounded-full"
+            style={{ background: 'radial-gradient(circle, rgba(212,175,55,0.07) 0%, transparent 62%)' }}
           />
         </div>
 
         {/* Eyebrow */}
         <motion.div
-          {...fadeUp(0)}
-          className="mb-8 inline-flex items-center gap-2 rounded-full px-4 py-1.5"
-          style={{ background: 'rgba(212,175,55,0.06)', border: '1px solid rgba(212,175,55,0.15)' }}
+          {...up(0)}
+          className="mb-10 inline-flex items-center gap-2.5 rounded-full px-4 py-2"
+          style={{ background: 'rgba(212,175,55,0.05)', border: '1px solid rgba(212,175,55,0.14)' }}
         >
+          <span className="status-dot status-gold" />
           <span
-            className="h-1.5 w-1.5 rounded-full"
-            style={{ background: '#D4AF37', boxShadow: '0 0 6px #D4AF37' }}
-          />
-          <span className="text-[10px] font-bold uppercase tracking-[0.25em]" style={{ color: '#D4AF37' }}>
+            className="text-[10px] font-bold uppercase tracking-[0.28em]"
+            style={{ color: '#D4AF37' }}
+          >
             The Operating System For Discipline
           </span>
         </motion.div>
 
-        {/* Headline */}
+        {/* Wordmark */}
         <motion.h1
-          {...fadeUp(0.08)}
-          className="mx-auto max-w-3xl text-7xl font-black leading-[0.9] tracking-tight text-white sm:text-9xl"
+          {...up(0.06)}
+          className="mx-auto font-black leading-none tracking-tighter text-white"
+          style={{ fontSize: 'clamp(5rem, 22vw, 14rem)', letterSpacing: '-0.04em' }}
         >
           PRIME
         </motion.h1>
 
         <motion.p
-          {...fadeUp(0.14)}
-          className="mx-auto mt-3 text-sm font-bold uppercase tracking-[0.35em]"
-          style={{ color: '#3A3A3A' }}
+          {...up(0.13)}
+          className="mx-auto mt-4 text-xs font-bold uppercase tracking-[0.4em]"
+          style={{ color: '#2A2A2A' }}
         >
           Not for everyone. For those who refuse to quit.
         </motion.p>
 
-        {/* Subtext */}
-        <motion.p {...fadeUp(0.22)} className="mx-auto mt-8 max-w-md text-base leading-relaxed" style={{ color: '#6B6B6B' }}>
+        {/* Sub copy */}
+        <motion.p
+          {...up(0.2)}
+          className="mx-auto mt-8 max-w-sm text-base leading-relaxed"
+          style={{ color: '#5A5A5A' }}
+        >
           Prime rewards one thing: consistency. Every visit proves commitment. Every streak earns rank. Every rank becomes identity.
         </motion.p>
 
         {/* CTAs */}
-        <motion.div {...fadeUp(0.3)} className="mt-10 flex flex-wrap items-center justify-center gap-3">
-          <Link to="/signup" className="btn-primary px-10 py-3.5 text-sm">
-            Begin <ArrowRight size={15} />
+        <motion.div {...up(0.28)} className="mt-10 flex flex-wrap items-center justify-center gap-3">
+          <Link to="/signup" className="btn-primary px-10 py-4 text-sm">
+            Begin Your Record <ArrowRight size={14} />
           </Link>
-          <Link to="/login" className="btn-secondary px-8 py-3.5 text-sm">
+          <Link to="/login" className="btn-secondary px-8 py-4 text-sm">
             Sign In
           </Link>
         </motion.div>
 
-        {/* Rotating motto */}
-        <motion.p
-          {...fadeUp(0.4)}
-          className="mx-auto mt-12 text-xs italic"
-          style={{ color: '#3A3A3A' }}
-        >
-          {mottos[0]}
-        </motion.p>
+        {/* Rank tiers parade */}
+        <motion.div {...up(0.38)} className="mt-14 flex flex-wrap items-center justify-center gap-3">
+          {ranks.map((rank, i) => (
+            <motion.div
+              key={rank.name}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 + i * 0.07, duration: 0.5 }}
+              className="inline-flex items-center gap-2 rounded-full px-3.5 py-1.5"
+              style={{
+                background: `${rank.color}08`,
+                border: `1px solid ${rank.color}1a`,
+              }}
+            >
+              <span
+                className="h-1.5 w-1.5 rounded-full"
+                style={{ background: rank.color, boxShadow: `0 0 5px ${rank.color}` }}
+              />
+              <span
+                className="text-[10px] font-bold uppercase tracking-[0.18em]"
+                style={{ color: `${rank.color}cc` }}
+              >
+                {rank.name}
+              </span>
+            </motion.div>
+          ))}
+        </motion.div>
+      </section>
 
-        {/* Stats row */}
+      {/* ── Stats strip ─────────────────────────────────────────── */}
+      <section className="px-4 pb-20">
         <motion.div
-          {...fadeUp(0.45)}
-          className="mx-auto mt-14 grid max-w-2xl grid-cols-2 gap-px overflow-hidden rounded-2xl sm:grid-cols-4"
+          {...up(0)}
+          className="mx-auto grid max-w-3xl grid-cols-2 gap-px overflow-hidden rounded-2xl sm:grid-cols-4"
           style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.05)' }}
         >
           {stats.map((s) => (
-            <div key={s.label} className="px-5 py-6" style={{ background: 'rgba(10,10,10,0.8)' }}>
+            <div key={s.label} className="px-6 py-7" style={{ background: 'var(--bg-base)' }}>
               <p className="text-3xl font-black tracking-tight text-white">{s.value}</p>
               <p className="mt-1 label">{s.label}</p>
             </div>
@@ -133,89 +162,98 @@ export default function Landing() {
         </motion.div>
       </section>
 
+      {/* Divider */}
       <div className="divider mx-4" />
 
-      {/* ── Features ─────────────────────────────────────── */}
-      <section className="px-4 pb-20 pt-16">
-        <motion.div {...fadeUp(0)} className="mb-12 text-center">
-          <p className="label tracking-[0.3em]">The System</p>
-          <h2 className="mt-3 text-4xl font-black text-white">
-            Built for{' '}
-            <span className="gradient-text">high performers.</span>
-          </h2>
-          <p className="mx-auto mt-3 max-w-md text-sm" style={{ color: '#4A4A4A' }}>
-            Not a fitness tracker. Not a habit app. An operating system for the people who do the work anyway — and want proof.
-          </p>
-        </motion.div>
-
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {features.map((f, i) => (
-            <motion.div
-              key={f.title}
-              {...fadeUp(0.07 * i)}
-              whileHover={{ y: -4 }}
-              className="card group cursor-default p-6"
-            >
-              <div
-                className="mb-5 flex h-11 w-11 items-center justify-center rounded-xl text-lg font-black transition-transform duration-300 group-hover:scale-105"
-                style={{
-                  background: `${f.color}10`,
-                  border: `1px solid ${f.color}20`,
-                  color: f.color,
-                }}
-              >
-                {f.symbol}
-              </div>
-              <h3 className="text-sm font-black uppercase tracking-wider text-white">{f.title}</h3>
-              <p className="mt-2 text-sm leading-relaxed" style={{ color: '#4A4A4A' }}>{f.detail}</p>
-            </motion.div>
-          ))}
-        </div>
-      </section>
-
-      {/* ── Manifesto strip ─────────────────────────────────────── */}
-      <section className="px-4 pb-8">
-        <motion.div
-          {...fadeUp(0)}
-          className="card relative overflow-hidden p-10 text-center"
-          style={{ background: 'rgba(212,175,55,0.03)', border: '1px solid rgba(212,175,55,0.08)' }}
+      {/* ── Manifesto ───────────────────────────────────────────── */}
+      <section className="px-4 py-20">
+        <motion.div {...up(0)} className="relative overflow-hidden rounded-[1.5rem] px-8 py-14 text-center sm:px-16"
+          style={{ background: 'rgba(212,175,55,0.025)', border: '1px solid rgba(212,175,55,0.08)' }}
         >
-          <div className="pointer-events-none absolute inset-0">
-            <div
-              className="absolute left-1/2 top-0 h-64 w-64 -translate-x-1/2 -translate-y-1/2 rounded-full"
-              style={{ background: 'radial-gradient(circle, rgba(212,175,55,0.06) 0%, transparent 70%)' }}
-            />
-          </div>
-          <p className="mx-auto max-w-lg text-3xl font-black leading-tight text-white">
-            Greatness is rarely a single moment.
+          <div className="pointer-events-none absolute left-1/2 top-0 h-64 w-64 -translate-x-1/2 -translate-y-1/2 rounded-full"
+            style={{ background: 'radial-gradient(circle, rgba(212,175,55,0.07) 0%, transparent 70%)' }}
+          />
+          <p className="mx-auto max-w-sm text-xs font-bold uppercase tracking-[0.3em]" style={{ color: '#D4AF37' }}>
+            The Prime Manifesto
           </p>
-          <p className="mx-auto mt-4 max-w-md text-sm leading-relaxed" style={{ color: '#4A4A4A' }}>
-            It is repetition. It is showing up when nobody is watching. It is choosing progress over comfort. Every streak is proof. Every visit is evidence. Every rank is earned.
+          <h2 className="mx-auto mt-5 max-w-xl text-4xl font-black leading-tight text-white sm:text-5xl">
+            Greatness is built through repetition.
+          </h2>
+          <p className="mx-auto mt-5 max-w-md text-base leading-relaxed" style={{ color: '#4A4A4A' }}>
+            Not talent. Not luck. Not a single defining moment. Greatness is the person who showed up — again — when it would have been easier to stop.
           </p>
-          <div className="mt-8 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
-            <Link to="/signup" className="btn-primary px-10 py-3.5 text-sm inline-flex items-center gap-2">
+          <p className="mx-auto mt-4 max-w-md text-base leading-relaxed" style={{ color: '#4A4A4A' }}>
+            Every streak is proof. Every visit is evidence. Every rank is earned.
+          </p>
+          <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
+            <Link to="/signup" className="btn-primary inline-flex items-center gap-2 px-10 py-4 text-sm">
               Begin Your Record <ArrowRight size={14} />
             </Link>
           </div>
         </motion.div>
       </section>
 
-      {/* ── Mottos ─────────────────────────────────────── */}
-      <section className="px-4 pb-20 pt-4">
-        <div className="grid gap-3 sm:grid-cols-3">
-          {mottos.map((m, i) => (
+      {/* ── Four Pillars ─────────────────────────────────────────── */}
+      <section className="px-4 pb-20">
+        <div className="mb-12 text-center">
+          <p className="label tracking-[0.3em]">The System</p>
+          <h2 className="mt-3 text-4xl font-black text-white">
+            Built for{' '}
+            <span className="gradient-text">those who do the work.</span>
+          </h2>
+          <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed" style={{ color: '#3A3A3A' }}>
+            Not a habit tracker. Not a workout app. An operating system for people who already know what they need to do — and need proof that they did it.
+          </p>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {pillars.map((p, i) => (
             <motion.div
-              key={i}
-              {...fadeUp(0.06 * i)}
-              className="rounded-2xl p-5 text-center"
-              style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)' }}
+              key={p.title}
+              initial={{ opacity: 0, y: 18 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.08 * i, duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+              whileHover={{ y: -3 }}
+              className="card group cursor-default p-6"
             >
-              <p className="text-sm italic font-medium" style={{ color: '#4A4A4A' }}>{m}</p>
+              <div
+                className="mb-5 flex h-11 w-11 items-center justify-center rounded-xl text-lg font-black transition-transform duration-300 group-hover:scale-105"
+                style={{
+                  background: `${p.color}0d`,
+                  border: `1px solid ${p.color}1a`,
+                  color: p.color,
+                }}
+              >
+                {p.symbol}
+              </div>
+              <h3 className="text-sm font-black uppercase tracking-wider text-white">{p.title}</h3>
+              <p className="mt-2.5 text-sm leading-relaxed" style={{ color: '#3A3A3A' }}>{p.body}</p>
             </motion.div>
           ))}
         </div>
       </section>
 
+      {/* ── Closing mottos ─────────────────────────────────────── */}
+      <section className="px-4 pb-20">
+        <div className="grid gap-3 sm:grid-cols-3">
+          {[
+            '"Consistency is status."',
+            '"The standard is set by what you repeat."',
+            '"Small actions become powerful identities."',
+          ].map((m, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.08 * i, duration: 0.5 }}
+              className="rounded-2xl p-6 text-center"
+              style={{ background: 'rgba(255,255,255,0.018)', border: '1px solid rgba(255,255,255,0.04)' }}
+            >
+              <p className="text-sm italic font-medium leading-relaxed" style={{ color: '#3A3A3A' }}>{m}</p>
+            </motion.div>
+          ))}
+        </div>
+      </section>
     </div>
   );
 }

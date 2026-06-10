@@ -1,10 +1,11 @@
 import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { Home, Trophy, User } from 'lucide-react';
 
 const tabs = [
-  { href: '/dashboard', label: 'Home', icon: '▲' },
-  { href: '/leaderboard', label: 'Ranks', icon: '◆' },
-  { href: '/profile', label: 'Profile', icon: '◉' },
+  { href: '/dashboard',   label: 'Home',    Icon: Home },
+  { href: '/leaderboard', label: 'Ranks',   Icon: Trophy },
+  { href: '/profile',     label: 'Profile', Icon: User },
 ];
 
 export default function BottomNav() {
@@ -14,42 +15,46 @@ export default function BottomNav() {
     <nav
       className="fixed bottom-0 left-0 right-0 z-50"
       style={{
-        background: 'rgba(10,10,10,0.96)',
-        backdropFilter: 'blur(24px)',
-        WebkitBackdropFilter: 'blur(24px)',
-        borderTop: '1px solid rgba(255,255,255,0.06)',
+        background: 'var(--bg-bottom-nav)',
+        backdropFilter: 'blur(32px)',
+        WebkitBackdropFilter: 'blur(32px)',
+        borderTop: '1px solid var(--border-subtle)',
         paddingBottom: 'env(safe-area-inset-bottom)',
       }}
     >
       <div className="flex items-stretch">
-        {tabs.map((tab) => {
-          const active = pathname === tab.href;
+        {tabs.map(({ href, label, Icon }) => {
+          const active = pathname === href;
           return (
             <Link
-              key={tab.href}
-              to={tab.href}
-              className="relative flex flex-1 flex-col items-center justify-center gap-1 py-3 transition-colors"
-              style={{ minHeight: 56 }}
+              key={href}
+              to={href}
+              className="relative flex flex-1 flex-col items-center justify-center gap-1.5 transition-colors"
+              style={{ minHeight: 58, paddingBlock: '0.875rem' }}
             >
+              {/* Active top indicator */}
               {active && (
                 <motion.span
-                  layoutId="bottom-nav-active"
-                  className="absolute inset-x-3 top-0 h-0.5 rounded-full"
-                  style={{ background: '#D4AF37' }}
+                  layoutId="bottom-nav-indicator"
+                  className="absolute inset-x-5 top-0 h-px rounded-full"
+                  style={{ background: 'linear-gradient(90deg, transparent, #D4AF37, transparent)' }}
                   transition={{ type: 'spring', stiffness: 500, damping: 38 }}
                 />
               )}
+
+              <Icon
+                size={19}
+                strokeWidth={active ? 2.2 : 1.6}
+                style={{
+                  color: active ? '#D4AF37' : 'var(--text-muted)',
+                  transition: 'color 0.18s, stroke-width 0.18s',
+                }}
+              />
               <span
-                className="text-base leading-none transition-colors"
-                style={{ color: active ? '#D4AF37' : '#3A3A3A' }}
+                className="text-[9px] font-bold uppercase tracking-widest leading-none transition-colors"
+                style={{ color: active ? '#D4AF37' : 'var(--text-muted)' }}
               >
-                {tab.icon}
-              </span>
-              <span
-                className="text-[10px] font-semibold uppercase tracking-widest leading-none transition-colors"
-                style={{ color: active ? '#D4AF37' : '#3A3A3A' }}
-              >
-                {tab.label}
+                {label}
               </span>
             </Link>
           );

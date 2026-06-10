@@ -9,7 +9,7 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [message, setMessage] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const login = useAuthStore((state) => state.login);
   const user = useAuthStore((state) => state.getUser());
 
@@ -19,9 +19,9 @@ export default function Login() {
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
-    setLoading(true);
+    setIsLoading(true);
     const success = await login(email, password);
-    setLoading(false);
+    setIsLoading(false);
     if (success) {
       navigate('/dashboard');
     } else {
@@ -29,39 +29,39 @@ export default function Login() {
     }
   };
 
-  const handleDemo = () => {
-    setEmail('demo@prime.app');
-    setPassword('demo1234');
-    setMessage('');
-  };
-
   return (
     <div className="flex min-h-[calc(100vh-120px)] items-center justify-center px-4 py-10">
       <motion.div
-        initial={{ opacity: 0, y: 24 }}
+        initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+        transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
         className="w-full max-w-sm"
       >
         {/* Logo mark */}
         <div className="mb-10 text-center">
-          <div
-            className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl text-xl font-black text-surface shadow-gold"
-            style={{ background: 'linear-gradient(135deg, #D4AF37, #E5C158)' }}
-          >
-            ▲
+          <div className="relative mx-auto mb-6 h-16 w-16">
+            <div
+              className="absolute inset-0 rounded-[1.125rem] opacity-25 blur-[14px]"
+              style={{ background: '#D4AF37' }}
+            />
+            <div
+              className="relative flex h-16 w-16 items-center justify-center rounded-[1.125rem] text-xl font-black text-black"
+              style={{ background: 'linear-gradient(145deg, #E5C158, #D4AF37, #B8962E)' }}
+            >
+              ▲
+            </div>
           </div>
           <h1 className="text-3xl font-black text-white">Welcome back.</h1>
-          <p className="mt-2 text-sm" style={{ color: '#4A4A4A' }}>
-            Sign in to continue your record.
+          <p className="mt-2 text-sm" style={{ color: 'var(--text-muted)' }}>
+            Continue your record.
           </p>
         </div>
 
-        {/* Card */}
-        <div className="card p-6">
+        {/* Form card */}
+        <div className="card p-7">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="label block mb-2">Email</label>
+              <label className="label mb-2 block">Email</label>
               <input
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -69,10 +69,11 @@ export default function Login() {
                 type="email"
                 placeholder="you@example.com"
                 required
+                autoComplete="email"
               />
             </div>
             <div>
-              <label className="label block mb-2">Password</label>
+              <label className="label mb-2 block">Password</label>
               <input
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -80,15 +81,16 @@ export default function Login() {
                 type="password"
                 placeholder="••••••••"
                 required
+                autoComplete="current-password"
               />
             </div>
 
             {message && (
               <motion.p
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="rounded-xl px-3 py-2.5 text-xs"
-                style={{ background: 'rgba(243,156,18,0.07)', border: '1px solid rgba(243,156,18,0.18)', color: '#F39C12' }}
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="rounded-2xl px-4 py-3 text-xs"
+                style={{ background: 'rgba(243,156,18,0.06)', border: '1px solid rgba(243,156,18,0.16)', color: '#F39C12' }}
               >
                 {message}
               </motion.p>
@@ -96,27 +98,27 @@ export default function Login() {
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={isLoading}
               className="btn-primary w-full"
-              style={loading ? { opacity: 0.7 } : {}}
+              style={isLoading ? { opacity: 0.7 } : {}}
             >
-              {loading ? 'Signing in…' : 'Sign In'}
-              {!loading && <ArrowRight size={14} />}
+              {isLoading ? 'Signing in…' : 'Sign In'}
+              {!isLoading && <ArrowRight size={14} />}
             </button>
           </form>
 
-          <div className="divider my-4" />
+          <div className="divider my-5" />
 
           <button
             type="button"
-            onClick={handleDemo}
-            className="btn-ghost w-full text-xs justify-center"
+            onClick={() => { setEmail('demo@prime.app'); setPassword('demo1234'); setMessage(''); }}
+            className="btn-ghost w-full justify-center text-xs"
           >
             Use demo account
           </button>
         </div>
 
-        <p className="mt-5 text-center text-xs" style={{ color: '#3A3A3A' }}>
+        <p className="mt-5 text-center text-xs" style={{ color: 'var(--text-muted)' }}>
           No account?{' '}
           <Link to="/signup" className="font-semibold text-white hover:underline">
             Begin here

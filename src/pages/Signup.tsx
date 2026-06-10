@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
-import { gyms } from '../data/gyms';
+import { gyms, findGymByCode } from '../data/gyms';
 import { ranks } from '../data/ranks';
 import { ArrowRight, ArrowLeft } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -35,7 +35,9 @@ export default function Signup() {
   const [phone, setPhone] = useState('');
   const [schedule, setSchedule] = useState<string[]>(['Mon', 'Wed']);
   const [rankTitle, setRankTitle] = useState('Initiate');
-  const [gymId] = useState(gyms[0]?.id ?? 'gym-1');
+  const [gymCode, setGymCode] = useState('');
+  const [gymId, setGymId] = useState(gyms[0]?.id ?? 'gym-1');
+  const [gymError, setGymError] = useState('');
   const [error, setError] = useState('');
 
   const canContinueOne = useMemo(() => name && email && password, [name, email, password]);
@@ -54,6 +56,16 @@ export default function Signup() {
     if (step === 1 && !canContinueOne) {
       setError('Name, email, and password are required.');
       return;
+    }
+    // Validate gym code if provided
+    if (step === 1 && gymCode.trim()) {
+      const found = findGymByCode(gymCode);
+      if (!found) {
+        setGymError('Invalid gym code. Leave blank to skip.');
+        return;
+      }
+      setGymId(found.id);
+      setGymError('');
     }
     if (step === 2 && !canContinueTwo) {
       setError('Select at least two gym days.');
@@ -182,6 +194,25 @@ export default function Signup() {
                   <input value={phone} onChange={(e) => setPhone(e.target.value)} className="input-field" type="tel" placeholder="+1 555 000 0000" />
                 </div>
                 <div>
+                  <label className="label block mb-2">
+                    Gym Code <span style={{ color: '#3A3A3A' }}>(optional)</span>
+                  </label>
+                  <input
+                    value={gymCode}
+                    onChange={(e) => { setGymCode(e.target.value.toUpperCase()); setGymError(''); }}
+                    className="input-field uppercase tracking-widest"
+                    placeholder="e.g. PRIME"
+                  />
+                  {gymCode && !gymError && findGymByCode(gymCode) && (
+                    <p className="mt-1.5 text-xs" style={{ color: '#2ECC71' }}>
+                      ✓ {findGymByCode(gymCode)!.name}
+                    </p>
+                  )}
+                  {gymError && (
+                    <p className="mt-1.5 text-xs" style={{ color: '#E74C3C' }}>{gymError}</p>
+                  )}
+                </div>
+                <div>
                   <label className="label block mb-2">Avatar <span style={{ color: '#3A3A3A' }}>(optional)</span></label>
                   <input
                     onChange={handleAvatarChange}
@@ -263,6 +294,7 @@ export default function Signup() {
                     { label: 'Email', value: email },
                     { label: 'Schedule', value: schedule.join(', ') },
                     { label: 'Starting Rank', value: rankTitle },
+                    { label: 'Gym', value: gyms.find(g => g.id === gymId)?.name ?? 'None' },
                   ].map((row) => (
                     <div key={row.label} className="flex items-center justify-between gap-3">
                       <span className="label">{row.label}</span>
