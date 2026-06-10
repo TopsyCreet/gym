@@ -1,36 +1,35 @@
 import { motion } from 'framer-motion';
-import { Flame } from 'lucide-react';
 
 const getStreakStyle = (streak: number) => {
   if (streak >= 30) return {
-    from: '#EF4444', to: '#F97316',
-    shadow: '0 0 40px rgba(239,68,68,0.5), 0 0 80px rgba(239,68,68,0.2)',
-    label: 'On Fire',
-    textColor: '#EF4444',
+    color: '#D4AF37',
+    shadow: '0 0 40px rgba(212,175,55,0.4), 0 0 80px rgba(212,175,55,0.15)',
+    label: 'Monarch Tier',
+    sublabel: 'You are the standard others chase.',
   };
   if (streak >= 14) return {
-    from: '#F97316', to: '#F59E0B',
-    shadow: '0 0 35px rgba(249,115,22,0.45)',
-    label: 'Blazing',
-    textColor: '#F97316',
+    color: '#E5C158',
+    shadow: '0 0 32px rgba(229,193,88,0.35)',
+    label: 'Prime Tier',
+    sublabel: 'Peak discipline. Keep going.',
   };
   if (streak >= 7) return {
-    from: '#F59E0B', to: '#FBBF24',
-    shadow: '0 0 30px rgba(245,158,11,0.4)',
-    label: 'Heating Up',
-    textColor: '#F59E0B',
+    color: '#4A90D9',
+    shadow: '0 0 28px rgba(74,144,217,0.35)',
+    label: 'Vanguard Tier',
+    sublabel: 'You lead by example.',
   };
   if (streak >= 3) return {
-    from: '#5B8EF0', to: '#8B5CF6',
-    shadow: '0 0 25px rgba(91,142,240,0.35)',
-    label: 'Building',
-    textColor: '#5B8EF0',
+    color: '#CD853F',
+    shadow: '0 0 22px rgba(205,133,63,0.3)',
+    label: 'Forged',
+    sublabel: 'Consistency becomes identity.',
   };
   return {
-    from: '#374151', to: '#4B5563',
+    color: '#3A3A3A',
     shadow: 'none',
-    label: 'Start Today',
-    textColor: '#9CA3AF',
+    label: 'Begin',
+    sublabel: 'The path starts with one day.',
   };
 };
 
@@ -42,39 +41,53 @@ export default function StreakCard({ streak }: { streak: number }) {
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
-      className="card p-5"
+      className="card-elevated p-6"
     >
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <p className="label">Current Streak</p>
-          <p className="mt-2 text-5xl font-black tracking-tight text-white leading-none">
-            {streak}
-            <span className="ml-1.5 text-xl font-semibold text-zinc-500">days</span>
-          </p>
-          <p className="mt-2 text-xs font-semibold" style={{ color: style.textColor }}>{style.label}</p>
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex-1">
+          <p className="label">Commitment Streak</p>
+          <div className="mt-3 flex items-end gap-2">
+            <motion.p
+              key={streak}
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 22 }}
+              className="text-6xl font-black tracking-tight text-white leading-none"
+            >
+              {streak}
+            </motion.p>
+            <span className="mb-1.5 text-base font-semibold" style={{ color: '#3A3A3A' }}>days</span>
+          </div>
+          <p className="mt-2 text-sm font-bold tracking-wide uppercase" style={{ color: style.color }}>{style.label}</p>
+          <p className="mt-1 text-xs" style={{ color: '#4A4A4A' }}>{style.sublabel}</p>
         </div>
+
         <motion.div
-          animate={{ scale: streak > 0 ? [1, 1.08, 1] : 1 }}
-          transition={{ repeat: Infinity, duration: 2.5 }}
-          className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl"
+          animate={{ scale: streak > 0 ? [1, 1.06, 1] : 1 }}
+          transition={{ repeat: Infinity, duration: 3, ease: 'easeInOut' }}
+          className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl"
           style={{
-            background: `linear-gradient(135deg, ${style.from}, ${style.to})`,
-            boxShadow: style.shadow,
+            background: streak > 0 ? `${style.color}15` : 'rgba(255,255,255,0.03)',
+            border: `1px solid ${style.color}30`,
+            boxShadow: streak > 0 ? style.shadow : 'none',
           }}
         >
-          <Flame size={26} className="text-white" />
+          <span className="text-2xl font-black" style={{ color: style.color }}>
+            {streak >= 30 ? '◆' : streak >= 14 ? '▲' : streak >= 7 ? '▸' : streak >= 3 ? '◇' : '○'}
+          </span>
         </motion.div>
       </div>
-      <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-white/[0.05]">
+
+      <div className="mt-5 h-1 overflow-hidden rounded-full" style={{ background: 'rgba(255,255,255,0.04)' }}>
         <motion.div
           initial={{ width: 0 }}
           animate={{ width: `${Math.min(100, (streak / 30) * 100)}%` }}
-          transition={{ duration: 0.8, ease: 'easeOut' }}
+          transition={{ duration: 1, ease: 'easeOut' }}
           className="h-full rounded-full"
-          style={{ background: `linear-gradient(90deg, ${style.from}, ${style.to})` }}
+          style={{ background: `linear-gradient(90deg, ${style.color}80, ${style.color})` }}
         />
       </div>
-      <p className="mt-2 text-xs text-zinc-600">{streak}/30 days to max fire</p>
+      <p className="mt-2 text-xs" style={{ color: '#3A3A3A' }}>{streak}/30 days to Monarch tier</p>
     </motion.div>
   );
 }

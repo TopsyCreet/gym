@@ -1,11 +1,11 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { motion } from 'framer-motion';
-import { Shield, Zap } from 'lucide-react';
+import { Shield, LogOut } from 'lucide-react';
 
 const links = [
   { href: '/dashboard', label: 'Dashboard' },
-  { href: '/leaderboard', label: 'Leaderboard' },
+  { href: '/leaderboard', label: 'The Ranks' },
   { href: '/profile', label: 'Profile' },
 ];
 
@@ -23,22 +23,25 @@ export default function Navbar() {
       className="sticky top-0 z-50"
     >
       <div
-        className="border-b border-white/[0.06]"
-        style={{ background: 'rgba(7,7,14,0.88)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)' }}
+        className="border-b border-white/[0.05]"
+        style={{ background: 'rgba(10,10,10,0.92)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)' }}
       >
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
 
           {/* Logo */}
           <button onClick={() => navigate('/')} className="group flex items-center gap-3">
             <div className="relative flex h-9 w-9 shrink-0 items-center justify-center">
-              <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-glow to-royal opacity-70 blur-[6px] transition-opacity group-hover:opacity-100" />
-              <div className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-glow to-royal text-[11px] font-black text-white shadow-glow-sm">
-                IG
+              <div className="absolute inset-0 rounded-xl bg-accent opacity-20 blur-[8px] transition-opacity group-hover:opacity-40" />
+              <div
+                className="relative flex h-9 w-9 items-center justify-center rounded-xl text-[10px] font-black text-surface shadow-gold-sm"
+                style={{ background: 'linear-gradient(135deg, #D4AF37, #E5C158)' }}
+              >
+                ▲
               </div>
             </div>
             <div className="hidden sm:block text-left">
-              <p className="label leading-none">IRONGATE</p>
-              <p className="mt-0.5 text-sm font-bold leading-none text-white">Solo Leveling Gym</p>
+              <p className="label leading-none tracking-[0.25em]">Operating System</p>
+              <p className="mt-0.5 text-sm font-black leading-none tracking-[0.12em] text-white uppercase">Prime</p>
             </div>
           </button>
 
@@ -49,13 +52,13 @@ export default function Navbar() {
                 key={link.href}
                 to={link.href}
                 className={`relative rounded-full px-4 py-2 text-sm font-medium transition-colors duration-150 ${
-                  location.pathname === link.href ? 'text-white' : 'text-zinc-400 hover:text-zinc-100'
+                  location.pathname === link.href ? 'text-white' : 'text-zinc-500 hover:text-zinc-200'
                 }`}
               >
                 {location.pathname === link.href && (
                   <motion.span
                     layoutId="nav-active"
-                    className="absolute inset-0 rounded-full border border-white/10 bg-white/[0.08]"
+                    className="absolute inset-0 rounded-full border border-white/[0.08] bg-white/[0.05]"
                     transition={{ type: 'spring', stiffness: 420, damping: 32 }}
                   />
                 )}
@@ -75,11 +78,19 @@ export default function Navbar() {
                 >
                   <Shield size={13} /> Admin
                 </button>
-                <button type="button" onClick={logout} className="btn-secondary py-2 text-xs">
-                  Sign Out
+                {/* Sign out: icon-only on mobile, text on desktop */}
+                <button
+                  type="button"
+                  onClick={logout}
+                  className="flex items-center justify-center rounded-xl transition-colors"
+                  style={{ minWidth: 36, minHeight: 36, color: '#3A3A3A' }}
+                  title="Sign Out"
+                >
+                  <LogOut size={16} />
                 </button>
                 <div
-                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-glow to-royal text-xs font-bold text-white shadow-glow-sm"
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold text-surface shadow-gold-sm"
+                  style={{ background: 'linear-gradient(135deg, #D4AF37, #E5C158)' }}
                   title={user.name}
                 >
                   {user.name.charAt(0).toUpperCase()}
@@ -89,7 +100,7 @@ export default function Navbar() {
               <div className="flex items-center gap-2">
                 <Link to="/login" className="btn-ghost py-2 text-xs">Sign In</Link>
                 <Link to="/signup" className="btn-primary py-2 text-xs">
-                  <Zap size={12} /> Get Started
+                  Begin
                 </Link>
               </div>
             )}
@@ -99,14 +110,14 @@ export default function Navbar() {
 
       {!user && (
         <div
-          className="border-b border-white/[0.04]"
-          style={{ background: 'linear-gradient(90deg, rgba(91,142,240,0.06), rgba(139,92,246,0.04), rgba(239,68,68,0.04))' }}
+          className="border-b border-white/[0.03]"
+          style={{ background: 'rgba(212,175,55,0.03)' }}
         >
-          <p className="py-2 text-center text-[11px] text-zinc-600">
-            Demo credentials —{' '}
-            <span className="font-mono text-zinc-400">demo@irongate.app</span>
+          <p className="py-2 text-center text-[11px] text-zinc-700">
+            Demo access —{' '}
+            <span className="font-mono text-zinc-500">demo@prime.app</span>
             {' / '}
-            <span className="font-mono text-zinc-400">demo1234</span>
+            <span className="font-mono text-zinc-500">demo1234</span>
           </p>
         </div>
       )}

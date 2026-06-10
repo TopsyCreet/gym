@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Zap, Flame, Trophy, Target, X } from 'lucide-react';
+import { TrendingUp, Target, BarChart2, CheckCircle, AlertTriangle, X } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { useGymStore } from '../store/gymStore';
 import { useStreak } from '../hooks/useStreak';
@@ -11,6 +11,17 @@ import ChallengeCard from '../components/ChallengeCard';
 import CheckInModal from '../components/CheckInModal';
 import RankBadge from '../components/RankBadge';
 
+const MOTIVATIONAL = [
+  'Consistency compounds.',
+  'Your future self is watching.',
+  'Discipline outlasts motivation.',
+  'The standard is set by what you repeat.',
+  'Small actions become powerful identities.',
+  'Return tomorrow.',
+  'Every day you return, you become harder to defeat.',
+  'Proof is built one session at a time.',
+];
+
 export default function Dashboard() {
   const user = useAuthStore((state) => state.getUser());
   const openCheckInModal = useGymStore((state) => state.openCheckInModal);
@@ -18,11 +29,12 @@ export default function Dashboard() {
   const { streak, level, nextMilestone, scheduleToday } = useStreak();
 
   const checkedInToday = user?.lastCheckInDate === new Date().toISOString().slice(0, 10);
+  const motto = MOTIVATIONAL[Math.floor(Date.now() / 86400000) % MOTIVATIONAL.length];
 
   useEffect(() => {
     if (!user) return;
     if (scheduleToday && !checkedInToday) {
-      setToast('Today is a gym day — your streak is at risk!');
+      setToast('Today is a scheduled day. Your streak is at risk.');
     }
   }, [user, scheduleToday, checkedInToday]);
 
@@ -46,10 +58,10 @@ export default function Dashboard() {
   const firstName = user.name.split(' ')[0];
 
   const quickStats = [
-    { icon: Trophy,  label: 'Check-ins',     value: user.checkIns,            color: '#F59E0B' },
-    { icon: Flame,   label: 'Best Streak',   value: `${user.longestStreak}d`, color: '#EF4444' },
-    { icon: Target,  label: 'Challenges',    value: user.challengesCompleted, color: '#10B981' },
-    { icon: Zap,     label: 'Total XP',      value: user.xp.toLocaleString(), color: '#5B8EF0' },
+    { icon: CheckCircle, label: 'Commitments',   value: user.checkIns,            color: '#D4AF37' },
+    { icon: TrendingUp,  label: 'Best Streak',   value: `${user.longestStreak}d`, color: '#B3B3B3' },
+    { icon: Target,      label: 'Trials Cleared',value: user.challengesCompleted, color: '#2ECC71' },
+    { icon: BarChart2,   label: 'Prime Points',  value: user.xp.toLocaleString(), color: '#4A90D9' },
   ];
 
   return (
@@ -62,33 +74,34 @@ export default function Dashboard() {
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="flex items-center justify-between gap-3 rounded-xl border border-fire/20 bg-fire/8 px-4 py-3"
+            className="flex items-center justify-between gap-3 rounded-xl px-4 py-3"
+            style={{ background: 'rgba(243,156,18,0.08)', border: '1px solid rgba(243,156,18,0.2)' }}
           >
-            <div className="flex items-center gap-2">
-              <Flame size={15} className="text-fire shrink-0" />
-              <p className="text-sm font-medium text-orange-200">{toast}</p>
+            <div className="flex items-center gap-2.5">
+              <AlertTriangle size={14} style={{ color: '#F39C12' }} className="shrink-0" />
+              <p className="text-sm font-medium" style={{ color: '#F39C12' }}>{toast}</p>
             </div>
-            <button onClick={() => setToast(null)} className="text-zinc-500 hover:text-white">
-              <X size={15} />
+            <button onClick={() => setToast(null)} className="text-zinc-600 hover:text-zinc-300">
+              <X size={14} />
             </button>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* ── Welcome + rank ─────────────────────────────── */}
-      <div className="card p-6">
+      {/* ── Hero card ─────────────────────────────── */}
+      <div className="card-elevated p-6">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-          {/* Greeting */}
           <div className="flex items-center gap-4">
             <div
-              className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-xl font-black text-white"
-              style={{ background: 'linear-gradient(135deg, #5B8EF0, #8B5CF6)', boxShadow: '0 0 24px rgba(91,142,240,0.4)' }}
+              className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-xl font-black text-surface shadow-gold-sm"
+              style={{ background: 'linear-gradient(135deg, #D4AF37, #E5C158)' }}
             >
               {firstName.charAt(0)}
             </div>
             <div>
-              <p className="label">Welcome back</p>
+              <p className="label tracking-[0.2em]">Good to see you</p>
               <h1 className="mt-0.5 text-2xl font-black text-white">{firstName}</h1>
+              <p className="mt-0.5 text-xs italic" style={{ color: '#3A3A3A' }}>{motto}</p>
             </div>
           </div>
           <RankBadge title={user.rankTitle} />
@@ -100,9 +113,9 @@ export default function Dashboard() {
             <div
               key={s.label}
               className="rounded-xl p-4"
-              style={{ background: `${s.color}0D`, border: `1px solid ${s.color}20` }}
+              style={{ background: `${s.color}08`, border: `1px solid ${s.color}18` }}
             >
-              <s.icon size={16} style={{ color: s.color }} />
+              <s.icon size={15} style={{ color: s.color }} />
               <p className="mt-2 text-xl font-black text-white">{s.value}</p>
               <p className="mt-0.5 label">{s.label}</p>
             </div>
@@ -110,28 +123,36 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* ── Streak + XP + Check-in ─────────────────────────────── */}
+      {/* ── Streak + XP + Commitment CTA ─────────────────────────────── */}
       <div className="grid gap-5 lg:grid-cols-[1fr_1fr_auto]">
-        <StreakCard streak={streak} />
-        <XPBar xp={user.xp} />
+        <div className="lg:order-1"><StreakCard streak={streak} /></div>
+        <div className="lg:order-2"><XPBar xp={user.xp} /></div>
 
-        {/* Check-in CTA */}
-        <div className="card flex flex-col items-center justify-center gap-3 p-6 text-center lg:min-w-[180px]">
+        {/* Commitment CTA — first on mobile so users can act immediately */}
+        <div
+          className="order-first flex flex-col items-center justify-center gap-3 rounded-2xl p-6 text-center lg:order-3 lg:min-w-[190px]"
+          style={{ background: '#121212', border: '1px solid rgba(255,255,255,0.06)' }}
+        >
           {checkedInToday ? (
             <>
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-jade/15">
-                <Zap size={24} className="text-jade" />
+              <div
+                className="flex h-14 w-14 items-center justify-center rounded-2xl"
+                style={{ background: 'rgba(46,204,113,0.1)', border: '1px solid rgba(46,204,113,0.2)' }}
+              >
+                <CheckCircle size={24} style={{ color: '#2ECC71' }} />
               </div>
-              <p className="text-sm font-semibold text-jade">Checked In ✓</p>
-              <p className="text-xs text-zinc-600">See you tomorrow</p>
+              <p className="text-sm font-bold uppercase tracking-wider" style={{ color: '#2ECC71' }}>
+                Committed ✓
+              </p>
+              <p className="text-xs" style={{ color: '#3A3A3A' }}>Return tomorrow.</p>
             </>
           ) : (
             <>
               <div
-                className="flex h-14 w-14 items-center justify-center rounded-2xl animate-pulse-glow"
-                style={{ background: 'rgba(91,142,240,0.15)' }}
+                className="flex h-14 w-14 items-center justify-center rounded-2xl animate-pulse-gold"
+                style={{ background: 'rgba(212,175,55,0.08)', border: '1px solid rgba(212,175,55,0.2)' }}
               >
-                <Zap size={24} className="text-glow" />
+                <span className="text-xl font-black" style={{ color: '#D4AF37' }}>▲</span>
               </div>
               <p className="label">Today's Session</p>
               <button
@@ -139,73 +160,99 @@ export default function Dashboard() {
                 onClick={openCheckInModal}
                 className="btn-primary w-full text-xs"
               >
-                Check In
+                Prove Attendance
               </button>
             </>
           )}
         </div>
       </div>
 
-      {/* ── Attendance + Challenges ─────────────────────────────── */}
+      {/* ── Attendance + Trials ─────────────────────────────── */}
       <div className="grid gap-5 xl:grid-cols-[1.3fr_1fr]">
         <div className="space-y-5">
           <AttendanceCalendar />
 
-          {/* Daily Challenges */}
+          {/* Today's Trials */}
           <div className="card p-5">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <p className="label">Daily Challenges</p>
-                <h2 className="mt-1 text-xl font-black text-white">Today's Mission</h2>
+                <p className="label tracking-[0.2em]">Today's Trials</p>
+                <h2 className="mt-1 text-xl font-black text-white">Complete All 3</h2>
+                <p className="mt-0.5 text-xs" style={{ color: '#3A3A3A' }}>
+                  Every trial cleared is proof of commitment.
+                </p>
               </div>
               <span
                 className="rounded-full px-3 py-1 text-xs font-bold"
-                style={{ background: 'rgba(139,92,246,0.12)', color: '#8B5CF6', border: '1px solid rgba(139,92,246,0.25)' }}
+                style={{
+                  background: 'rgba(212,175,55,0.08)',
+                  color: '#D4AF37',
+                  border: '1px solid rgba(212,175,55,0.18)',
+                }}
               >
-                {user.dailyChallenges.filter((c) => c.completed).length}/3 done
+                {user.dailyChallenges.filter((c) => c.completed).length}/3
               </span>
             </div>
             <div className="mt-5 grid gap-3 md:grid-cols-3">
               {user.dailyChallenges.map((challenge) => (
                 <ChallengeCard key={challenge.id} id={challenge.id} completed={challenge.completed} />
               ))}
+              {user.dailyChallenges.length === 0 && (
+                <div className="col-span-3 py-8 text-center">
+                  <p className="text-sm" style={{ color: '#3A3A3A' }}>
+                    Discipline is built one action at a time.
+                  </p>
+                  <p className="mt-1 text-xs" style={{ color: '#2A2A2A' }}>
+                    Check in first to unlock your trials.
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         </div>
 
-        {/* Level & milestone card */}
+        {/* Progress card */}
         <div className="card p-5">
-          <p className="label">Level Progress</p>
-          <p className="mt-2 text-4xl font-black text-white">Lv. {level}</p>
-          <p className="mt-1 text-sm text-zinc-500">
-            Next milestone in <span className="font-bold text-zinc-300">{nextMilestone} day{nextMilestone !== 1 ? 's' : ''}</span>
+          <p className="label tracking-[0.2em]">Advancement</p>
+          <p className="mt-2 text-4xl font-black text-white">Level {level}</p>
+          <p className="mt-1 text-sm" style={{ color: '#4A4A4A' }}>
+            Next milestone in{' '}
+            <span className="font-bold text-white">{nextMilestone} day{nextMilestone !== 1 ? 's' : ''}</span>
           </p>
 
           <div className="divider my-5" />
 
-          <p className="label mb-4">Weekly Score</p>
-          <div className="space-y-3">
+          <p className="label mb-4 tracking-[0.2em]">This Week</p>
+          <div className="space-y-4">
             {[
-              { label: 'Sessions attended', value: weeklyStats.attended, max: weeklyStats.active || 1, color: '#10B981' },
-              { label: 'Streak days', value: Math.min(streak, 7), max: 7, color: '#EF4444' },
-              { label: 'Challenges done', value: user.dailyChallenges.filter((c) => c.completed).length, max: 3, color: '#5B8EF0' },
+              { label: 'Sessions proved', value: weeklyStats.attended, max: weeklyStats.active || 1, color: '#D4AF37' },
+              { label: 'Streak days', value: Math.min(streak, 7), max: 7, color: '#2ECC71' },
+              { label: 'Trials cleared', value: user.dailyChallenges.filter((c) => c.completed).length, max: 3, color: '#4A90D9' },
             ].map((item) => (
               <div key={item.label}>
                 <div className="flex items-center justify-between gap-2 text-xs">
-                  <span className="text-zinc-500">{item.label}</span>
-                  <span className="font-bold text-zinc-300">{item.value}/{item.max}</span>
+                  <span style={{ color: '#4A4A4A' }}>{item.label}</span>
+                  <span className="font-bold" style={{ color: '#B3B3B3' }}>{item.value}/{item.max}</span>
                 </div>
-                <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-white/[0.05]">
+                <div className="mt-1.5 h-1 overflow-hidden rounded-full" style={{ background: 'rgba(255,255,255,0.04)' }}>
                   <motion.div
                     initial={{ width: 0 }}
                     animate={{ width: `${(item.value / item.max) * 100}%` }}
-                    transition={{ duration: 0.8, ease: 'easeOut' }}
+                    transition={{ duration: 0.9, ease: 'easeOut' }}
                     className="h-full rounded-full"
                     style={{ background: item.color }}
                   />
                 </div>
               </div>
             ))}
+          </div>
+
+          <div className="divider my-5" />
+
+          <div className="rounded-xl p-4 text-center" style={{ background: 'rgba(212,175,55,0.04)', border: '1px solid rgba(212,175,55,0.08)' }}>
+            <p className="text-xs italic" style={{ color: '#4A4A4A' }}>
+              "Every day you return, you become harder to defeat."
+            </p>
           </div>
         </div>
       </div>

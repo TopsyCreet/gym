@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, MapPin, Sparkles, Radio, ToggleLeft, ToggleRight } from 'lucide-react';
+import { X, MapPin, Radio, ToggleLeft, ToggleRight } from 'lucide-react';
 import { useGymStore } from '../store/gymStore';
 
 export default function CheckInModal() {
@@ -13,7 +13,7 @@ export default function CheckInModal() {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           className="fixed inset-0 z-50 flex items-center justify-center px-4 py-6"
-          style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)' }}
+          style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(12px)' }}
           onClick={closeCheckInModal}
         >
           <motion.div
@@ -22,51 +22,63 @@ export default function CheckInModal() {
             exit={{ scale: 0.93, opacity: 0, y: 16 }}
             transition={{ type: 'spring', stiffness: 380, damping: 28 }}
             className="card-glass w-full max-w-md p-6"
-            style={{ boxShadow: '0 30px 90px rgba(0,0,0,0.75)' }}
+            style={{ boxShadow: '0 30px 90px rgba(0,0,0,0.85), 0 0 0 1px rgba(212,175,55,0.08)' }}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="label">Gym Verification</p>
-                <h2 className="mt-1 text-xl font-black text-white">Check In Today</h2>
+                <p className="label">Commitment Verification</p>
+                <h2 className="mt-1.5 text-xl font-black text-white">Prove Your Attendance</h2>
+                <p className="mt-1 text-xs" style={{ color: '#4A4A4A' }}>
+                  Every visit is evidence. Every proof advances your rank.
+                </p>
               </div>
               <button
                 onClick={closeCheckInModal}
-                className="flex h-8 w-8 items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.04] text-zinc-400 transition-colors hover:bg-white/[0.08] hover:text-white"
+                className="flex h-8 w-8 items-center justify-center rounded-full border border-white/[0.07] bg-white/[0.03] text-zinc-600 transition-colors hover:bg-white/[0.07] hover:text-zinc-300"
               >
-                <X size={16} />
+                <X size={15} />
               </button>
             </div>
 
             <div className="mt-5 space-y-3">
               {/* Location panel */}
-              <div className="rounded-xl border border-white/[0.07] bg-black/20 p-4">
-                <div className="flex items-center gap-2 text-glow">
-                  <MapPin size={16} />
+              <div
+                className="rounded-xl p-4"
+                style={{ background: 'rgba(212,175,55,0.04)', border: '1px solid rgba(212,175,55,0.12)' }}
+              >
+                <div className="flex items-center gap-2" style={{ color: '#D4AF37' }}>
+                  <MapPin size={15} />
                   <span className="text-sm font-semibold">Location Status</span>
                 </div>
                 <div className="mt-3 flex items-center justify-between">
-                  <p className="text-xs text-zinc-400">Distance to gym</p>
-                  <span className="rounded-full bg-glow/10 px-3 py-1 text-sm font-bold text-glow">
+                  <p className="text-xs" style={{ color: '#4A4A4A' }}>Distance to facility</p>
+                  <span
+                    className="rounded-full px-3 py-1 text-sm font-bold"
+                    style={{ background: 'rgba(212,175,55,0.1)', border: '1px solid rgba(212,175,55,0.2)', color: '#D4AF37' }}
+                  >
                     {distance === null ? 'Calculating…' : `${Math.round(distance)}m`}
                   </span>
                 </div>
               </div>
 
               {/* Demo toggle */}
-              <div className="rounded-xl border border-white/[0.07] bg-black/20 p-4">
+              <div
+                className="rounded-xl p-4"
+                style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}
+              >
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <p className="label">Demo Override</p>
+                    <p className="label">Verification Override</p>
                     <p className="mt-1 text-sm font-semibold text-white">
-                      {atGymOverride ? 'At the gym ✓' : 'Away from gym'}
+                      {atGymOverride ? 'Location confirmed ✓' : 'Location unverified'}
                     </p>
                   </div>
                   <button
                     onClick={toggleAtGymOverride}
                     className="flex items-center gap-1.5 text-xs font-semibold transition-colors"
-                    style={{ color: atGymOverride ? '#10B981' : '#71717a' }}
+                    style={{ color: atGymOverride ? '#2ECC71' : '#3A3A3A' }}
                   >
                     {atGymOverride ? <ToggleRight size={28} /> : <ToggleLeft size={28} />}
                   </button>
@@ -74,12 +86,14 @@ export default function CheckInModal() {
               </div>
 
               {/* Message panel */}
-              <div className="rounded-xl border border-white/[0.07] bg-black/20 p-4 text-center">
-                <Sparkles size={24} className="mx-auto mb-2 text-glow" />
-                <p className="text-sm text-zinc-300">
-                  {lastCheckInMessage ?? 'Ready to verify your presence at the gym.'}
-                </p>
-              </div>
+              {lastCheckInMessage && (
+                <div
+                  className="rounded-xl p-4 text-center"
+                  style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}
+                >
+                  <p className="text-sm" style={{ color: '#B3B3B3' }}>{lastCheckInMessage}</p>
+                </div>
+              )}
             </div>
 
             {/* Actions */}
@@ -89,7 +103,7 @@ export default function CheckInModal() {
                 onClick={verifyGymLocation}
                 className="btn-secondary flex items-center gap-2"
               >
-                <Radio size={14} /> Probe Location
+                <Radio size={14} /> Verify Location
               </button>
               <button
                 type="button"
@@ -98,7 +112,7 @@ export default function CheckInModal() {
                 className="btn-primary"
                 style={verifying ? { opacity: 0.7 } : {}}
               >
-                {verifying ? 'Verifying…' : 'Check In Now'}
+                {verifying ? 'Verifying…' : 'Mark Commitment'}
               </button>
             </div>
           </motion.div>

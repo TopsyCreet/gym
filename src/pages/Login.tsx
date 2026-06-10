@@ -1,7 +1,7 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Zap, LogIn } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 
 export default function Login() {
@@ -25,14 +25,14 @@ export default function Login() {
     if (success) {
       navigate('/dashboard');
     } else {
-      setMessage('Invalid credentials. Try demo@irongate.app / demo1234');
+      setMessage('Invalid credentials. Try demo@prime.app / demo1234');
     }
   };
 
   const handleDemo = () => {
-    setEmail('demo@irongate.app');
+    setEmail('demo@prime.app');
     setPassword('demo1234');
-    setMessage('Demo credentials filled. Hit Sign In.');
+    setMessage('');
   };
 
   return (
@@ -44,12 +44,17 @@ export default function Login() {
         className="w-full max-w-sm"
       >
         {/* Logo mark */}
-        <div className="mb-8 text-center">
-          <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-glow to-royal text-xl font-black text-white shadow-glow">
-            IG
+        <div className="mb-10 text-center">
+          <div
+            className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl text-xl font-black text-surface shadow-gold"
+            style={{ background: 'linear-gradient(135deg, #D4AF37, #E5C158)' }}
+          >
+            ▲
           </div>
-          <h1 className="text-3xl font-black text-white">Welcome back</h1>
-          <p className="mt-2 text-sm text-zinc-500">Sign in to your IRONGATE account</p>
+          <h1 className="text-3xl font-black text-white">Welcome back.</h1>
+          <p className="mt-2 text-sm" style={{ color: '#4A4A4A' }}>
+            Sign in to continue your record.
+          </p>
         </div>
 
         {/* Card */}
@@ -82,7 +87,8 @@ export default function Login() {
               <motion.p
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="rounded-lg border border-amber-500/20 bg-amber-500/8 px-3 py-2 text-xs text-amber-300"
+                className="rounded-xl px-3 py-2.5 text-xs"
+                style={{ background: 'rgba(243,156,18,0.07)', border: '1px solid rgba(243,156,18,0.18)', color: '#F39C12' }}
               >
                 {message}
               </motion.p>
@@ -94,8 +100,8 @@ export default function Login() {
               className="btn-primary w-full"
               style={loading ? { opacity: 0.7 } : {}}
             >
-              <LogIn size={15} />
               {loading ? 'Signing in…' : 'Sign In'}
+              {!loading && <ArrowRight size={14} />}
             </button>
           </form>
 
@@ -104,16 +110,16 @@ export default function Login() {
           <button
             type="button"
             onClick={handleDemo}
-            className="btn-secondary w-full text-xs"
+            className="btn-ghost w-full text-xs justify-center"
           >
-            <Zap size={13} /> Auto-fill Demo
+            Use demo account
           </button>
         </div>
 
-        <p className="mt-5 text-center text-xs text-zinc-600">
+        <p className="mt-5 text-center text-xs" style={{ color: '#3A3A3A' }}>
           No account?{' '}
-          <Link to="/signup" className="text-glow font-semibold hover:underline">
-            Create one free
+          <Link to="/signup" className="font-semibold text-white hover:underline">
+            Begin here
           </Link>
         </p>
       </motion.div>

@@ -57,7 +57,7 @@ type AppState = {
   addCheckIn: (date: string) => void;
 };
 
-const STORAGE_KEY = 'irongate_app_data';
+const STORAGE_KEY = 'prime_app_data';
 
 const generateAttendance = (days = 30) => {
   const history: AttendanceHistory = {};
@@ -78,11 +78,11 @@ const buildDemoUser = (): UserProfile => {
   const xp = 1300;
   return {
     id: 'demo-user',
-    name: 'Sung Jinwoo',
-    email: 'demo@irongate.app',
+    name: 'Rasheed',
+    email: 'demo@prime.app',
     password: 'demo1234',
     avatar: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=512&q=80',
-    rankTitle: 'Shadow Monarch',
+    rankTitle: 'Monarch',
     schedule: ['Mon', 'Wed', 'Fri', 'Sat'],
     workoutPlan: defaultWorkoutPlan,
     gymId: gyms[0].id,
@@ -95,7 +95,7 @@ const buildDemoUser = (): UserProfile => {
     attendanceHistory: history,
     dailyChallenges: challenges.slice(0, 3).map((challenge) => ({ id: challenge.id, completed: false })),
     freezeTokens: 2,
-    achievements: ['First Check-in', '7-Day Streak'],
+    achievements: ['first-checkin', 'seven-day-streak'],
     lastCheckInDate: new Date().toISOString().slice(0, 10),
     phone: '',
   };
@@ -124,7 +124,7 @@ const seedUsers = (): UserProfile[] => {
       attendanceHistory: user.history || generateAttendance(30),
       dailyChallenges: challenges.slice(0, 3).map((challenge) => ({ id: challenge.id, completed: false })),
       freezeTokens: Math.max(0, Math.floor(user.streak / 7)),
-      achievements: ['Demo Warrior'],
+      achievements: ['first-checkin'],
       lastCheckInDate: undefined,
       phone: '',
     }))
@@ -138,7 +138,7 @@ const mapProfileToUser = (profile: any, email: string): UserProfile => ({
   email,
   password: '',
   avatar: profile.avatar ?? '',
-  rankTitle: profile.rank_title ?? 'Novice',
+  rankTitle: profile.rank_title ?? 'Initiate',
   schedule: profile.schedule ?? [],
   workoutPlan: profile.workout_plan ?? defaultWorkoutPlan,
   gymId: profile.gym_id ?? gyms[0].id,
@@ -162,7 +162,7 @@ const buildFallbackSupabaseUser = (user: { id: string; email: string | null }, g
   email: user.email ?? '',
   password: '',
   avatar: '',
-  rankTitle: 'Novice',
+  rankTitle: 'Initiate',
   schedule: [],
   workoutPlan: defaultWorkoutPlan,
   gymId,
@@ -188,9 +188,28 @@ export const useAuthStore = create<AppState>((set, get) => ({
   demoMode: false,
   init: async () => {
     set({ loading: true });
-    // seed local demo users for leaderboards
-    const users = seedUsers();
-    set({ users, loading: false });
+
+    // Restore any previously saved session from localStorage
+    let savedUserId: string | null = null;
+    let savedUserData: UserProfile | null = null;
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        savedUserId = parsed.currentUserId ?? null;
+        if (savedUserId && Array.isArray(parsed.users)) {
+          savedUserData = parsed.users.find((u: UserProfile) => u.id === savedUserId) ?? null;
+        }
+      }
+    } catch {}
+
+    const baseUsers = seedUsers();
+    // Merge: keep saved user data intact, use fresh seeds for everyone else
+    const users = savedUserData
+      ? [savedUserData, ...baseUsers.filter((u) => u.id !== savedUserData!.id)]
+      : baseUsers;
+
+    set({ users, loading: false, currentUserId: savedUserId });
 
     if (!supabaseConfigured || !supabase) {
       return;
@@ -209,7 +228,7 @@ export const useAuthStore = create<AppState>((set, get) => ({
             email: session.user.email ?? '',
             password: '',
             avatar: profile.avatar ?? '',
-            rankTitle: profile.rank_title ?? 'Novice',
+            rankTitle: profile.rank_title ?? 'Initiate',
             schedule: profile.schedule ?? [],
             workoutPlan: profile.workout_plan ?? defaultWorkoutPlan,
             gymId: profile.gym_id ?? gyms[0].id,
@@ -231,20 +250,22 @@ export const useAuthStore = create<AppState>((set, get) => ({
         }
       }
     } catch (err) {
-      // ignore for now
+      // ignore
     }
   },
   login: async (email, password) => {
-    if (email === 'demo@irongate.app' && password === 'demo1234') {
+    if (email === 'demo@prime.app' && password === 'demo1234') {
       const demoUser = get().users.find((user) => user.id === 'demo-user');
       if (demoUser) {
         set({ currentUserId: demoUser.id, demoMode: true, error: null });
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ users: [demoUser], currentUserId: demoUser.id })); } catch {}
         return true;
       }
       const users = seedUsers();
       const demo = users.find((user) => user.id === 'demo-user');
       if (demo) {
         set({ users, currentUserId: demo.id, demoMode: true, error: null });
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ users: [demo], currentUserId: demo.id })); } catch {}
         return true;
       }
     }
@@ -284,7 +305,7 @@ export const useAuthStore = create<AppState>((set, get) => ({
           id: userId,
           name: '',
           avatar: '',
-          rank_title: 'Novice',
+          rank_title: 'Initiate',
           schedule: [],
           workout_plan: defaultWorkoutPlan,
           gym_id: gyms[0].id,
@@ -301,7 +322,7 @@ export const useAuthStore = create<AppState>((set, get) => ({
         try {
           await supabase.from('profiles').insert([newProfile]);
         } catch {
-          // fallback if the table is not present or insert fails
+          // fallback
         }
         mapped = {
           id: newProfile.id,
@@ -309,7 +330,7 @@ export const useAuthStore = create<AppState>((set, get) => ({
           email,
           password: '',
           avatar: newProfile.avatar,
-          rankTitle: 'Novice',
+          rankTitle: 'Initiate',
           schedule: [],
           workoutPlan: defaultWorkoutPlan,
           gymId: newProfile.gym_id,
@@ -339,6 +360,13 @@ export const useAuthStore = create<AppState>((set, get) => ({
     if (supabaseConfigured && supabase) {
       await supabase.auth.signOut();
     }
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...parsed, currentUserId: null }));
+      }
+    } catch {}
     set({ currentUserId: null });
   },
   signUp: async (profile) => {
@@ -364,12 +392,13 @@ export const useAuthStore = create<AppState>((set, get) => ({
         attendanceHistory: {},
         dailyChallenges: [],
         freezeTokens: 0,
-        achievements: ['First Signup'],
+        achievements: ['first-signup'],
         lastCheckInDate: undefined,
         phone: profile.phone ?? '',
       };
       const users = [...state.users, newUser];
       set({ users, currentUserId: id });
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ users: [newUser], currentUserId: id })); } catch {}
       return { success: true };
     }
 
@@ -413,7 +442,7 @@ export const useAuthStore = create<AppState>((set, get) => ({
         check_ins: 0,
         challenges_completed: 0,
         attendance_history: {},
-        achievements: ['First Signup'],
+        achievements: ['first-signup'],
         last_checkin_date: null,
         phone: profile.phone ?? '',
       };
@@ -445,7 +474,7 @@ export const useAuthStore = create<AppState>((set, get) => ({
         attendanceHistory: {},
         dailyChallenges: [],
         freezeTokens: 0,
-        achievements: ['First Signup'],
+        achievements: ['first-signup'],
         lastCheckInDate: undefined,
         phone: profile.phone ?? '',
       };
@@ -453,8 +482,8 @@ export const useAuthStore = create<AppState>((set, get) => ({
 
       const needsConfirmation = !data.session;
       const message = needsConfirmation
-        ? 'Signup complete. Please confirm your email before logging in.'
-        : 'Signup complete. Redirecting to dashboard.';
+        ? 'Account created. Please confirm your email before logging in.'
+        : 'Welcome to Prime. Redirecting to your dashboard.';
       if (insertError) {
         console.warn('Supabase profile insert failed:', insertError);
       }
@@ -510,7 +539,7 @@ export const useAuthStore = create<AppState>((set, get) => ({
     const nextLevel = user.level + (nextXp >= 300 + (user.level - 1) * 400 ? 1 : 0);
     const updated = { ...user, xp: nextXp, level: nextLevel };
     if (nextLevel > user.level) {
-      updated.achievements = Array.from(new Set([...updated.achievements, 'Level Up']));
+      updated.achievements = Array.from(new Set([...updated.achievements, 'level-two']));
     }
     const users = state.users.map((item) => (item.id === updated.id ? updated : item));
     set({ users });
@@ -520,7 +549,7 @@ export const useAuthStore = create<AppState>((set, get) => ({
     const state = get();
     const user = state.users.find((item) => item.id === state.currentUserId);
     if (!user) return;
-    const updated = { ...user, streak: 0, achievements: Array.from(new Set([...user.achievements, 'Streak Reset'])) };
+    const updated = { ...user, streak: 0 };
     const users = state.users.map((item) => (item.id === updated.id ? updated : item));
     set({ users });
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ users, currentUserId: state.currentUserId }));
@@ -531,7 +560,7 @@ export const useAuthStore = create<AppState>((set, get) => ({
     if (!user) return;
     const existing = user.dailyChallenges.find((item) => item.id === challengeId);
     if (!existing || existing.completed || existing.startedAt) return;
-    const dailyChallenges = user.dailyChallenges.map((item) => 
+    const dailyChallenges = user.dailyChallenges.map((item) =>
       item.id === challengeId ? { ...item, startedAt: new Date().toISOString() } : item
     );
     const updated = { ...user, dailyChallenges };
@@ -551,7 +580,7 @@ export const useAuthStore = create<AppState>((set, get) => ({
       xp: user.xp + xp,
       challengesCompleted: user.challengesCompleted + 1,
       dailyChallenges,
-      achievements: Array.from(new Set([...user.achievements, 'Challenge Beast']))
+      achievements: Array.from(new Set([...user.achievements, 'challenge-beast']))
     };
     const users = state.users.map((item) => (item.id === updated.id ? updated : item));
     set({ users });
@@ -572,7 +601,7 @@ export const useAuthStore = create<AppState>((set, get) => ({
       xp: user.xp + 100,
       lastCheckInDate: date,
       freezeTokens: user.freezeTokens + (currentStreak % 7 === 0 ? 1 : 0),
-      achievements: Array.from(new Set([...user.achievements, 'First Check-in']))
+      achievements: Array.from(new Set([...user.achievements, 'first-checkin']))
     };
     const users = state.users.map((item) => (item.id === updated.id ? updated : item));
     set({ users });

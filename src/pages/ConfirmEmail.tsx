@@ -1,4 +1,6 @@
 import { useLocation, useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { ArrowRight } from 'lucide-react';
 
 export default function ConfirmEmail() {
   const navigate = useNavigate();
@@ -6,26 +8,51 @@ export default function ConfirmEmail() {
   const email = (location.state as { email?: string })?.email;
 
   return (
-    <div className="mx-auto flex max-w-2xl flex-col gap-8 py-10">
-      <div className="rounded-[32px] border border-white/10 bg-surface2 p-8 shadow-soft">
-        <p className="text-sm uppercase tracking-[0.35em] text-amber-300">Confirm your email</p>
-        <h1 className="mt-4 text-4xl font-bold text-white">Almost there</h1>
-        <p className="mt-4 text-zinc-300">
-          We sent a confirmation email{email ? ` to ${email}` : ''}. Open your inbox and click the link to activate your IRONGATE account.
-        </p>
-        <div className="mt-8 space-y-4 text-sm text-zinc-300">
-          <p>If you do not see the email, check your spam folder or try again with the correct address.</p>
-          <p>Once confirmed, use the button below to return to the login page and sign in.</p>
+    <div className="flex min-h-[calc(100vh-120px)] items-center justify-center px-4 py-10">
+      <motion.div
+        initial={{ opacity: 0, y: 24 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+        className="w-full max-w-md"
+      >
+        <div className="card-elevated p-8 text-center">
+          <div
+            className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-2xl text-xl font-black text-surface"
+            style={{ background: 'linear-gradient(135deg, #D4AF37, #E5C158)' }}
+          >
+            ▲
+          </div>
+
+          <p className="label tracking-[0.25em]">One More Step</p>
+          <h1 className="mt-3 text-3xl font-black text-white">Confirm your email.</h1>
+
+          <p className="mx-auto mt-4 max-w-sm text-sm leading-relaxed" style={{ color: '#4A4A4A' }}>
+            We sent a confirmation link{email ? <> to <span style={{ color: '#B3B3B3' }}>{email}</span></> : ''}.
+            Open your inbox and click the link to activate your Prime account.
+          </p>
+
+          <div
+            className="mx-auto mt-6 max-w-sm rounded-xl p-4 text-left"
+            style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}
+          >
+            <p className="text-xs" style={{ color: '#3A3A3A' }}>
+              Don't see it? Check your spam folder or try again with the correct address.
+            </p>
+            <p className="mt-2 text-xs" style={{ color: '#3A3A3A' }}>
+              Once confirmed, sign in below to begin your record.
+            </p>
+          </div>
+
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
+            <button type="button" onClick={() => navigate('/login')} className="btn-primary gap-2">
+              Sign In <ArrowRight size={14} />
+            </button>
+            <button type="button" onClick={() => navigate('/')} className="btn-secondary">
+              Return Home
+            </button>
+          </div>
         </div>
-        <div className="mt-8 flex gap-3 flex-wrap">
-          <button type="button" onClick={() => navigate('/login')} className="btn-primary">
-            Go to Login
-          </button>
-          <button type="button" onClick={() => navigate('/')} className="btn-secondary">
-            Return to Home
-          </button>
-        </div>
-      </div>
+      </motion.div>
     </div>
   );
 }

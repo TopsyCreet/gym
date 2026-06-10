@@ -4,13 +4,16 @@ import { useAuthStore } from '../store/authStore';
 import { getXpProgress } from '../utils/xpCalculator';
 import { daysOfWeek } from '../utils/streakCalculator';
 import RankBadge from '../components/RankBadge';
-import { Flame, Zap, Trophy, Target, Save } from 'lucide-react';
+import AchievementsTab from '../components/AchievementsTab';
+import { TrendingUp, Target, CheckCircle, BarChart2, Save } from 'lucide-react';
+import { allAchievements } from '../data/achievements';
 
 export default function Profile() {
   const user = useAuthStore((state) => state.getUser());
   const updateUser = useAuthStore((state) => state.updateUser);
   const [schedule, setSchedule] = useState(user?.schedule ?? []);
   const [saved, setSaved] = useState(false);
+  const [tab, setTab] = useState<'overview' | 'milestones'>('overview');
 
   if (!user) return null;
 
@@ -18,11 +21,11 @@ export default function Profile() {
   const pct = Math.round(progress * 100);
 
   const statCards = [
-    { icon: Zap,    label: 'Total XP',     value: user.xp,               color: '#5B8EF0', suffix: '' },
-    { icon: Flame,  label: 'Streak',       value: user.streak,           color: '#EF4444', suffix: 'd' },
-    { icon: Flame,  label: 'Best Streak',  value: user.longestStreak,    color: '#F97316', suffix: 'd' },
-    { icon: Trophy, label: 'Check-ins',    value: user.checkIns,         color: '#F59E0B', suffix: '' },
-    { icon: Target, label: 'Challenges',   value: user.challengesCompleted, color: '#10B981', suffix: '' },
+    { icon: BarChart2,   label: 'Prime Points',    value: user.xp,               color: '#D4AF37', suffix: ' PP' },
+    { icon: TrendingUp,  label: 'Streak',          value: user.streak,           color: '#2ECC71', suffix: 'd' },
+    { icon: TrendingUp,  label: 'Best Streak',     value: user.longestStreak,    color: '#B3B3B3', suffix: 'd' },
+    { icon: CheckCircle, label: 'Commitments',     value: user.checkIns,         color: '#4A90D9', suffix: '' },
+    { icon: Target,      label: 'Trials Cleared',  value: user.challengesCompleted, color: '#2ECC71', suffix: '' },
   ];
 
   const handleSave = () => {
@@ -49,48 +52,58 @@ export default function Profile() {
 
   const maxChart = Math.max(...chartData, 1);
 
+  const earnedMilestones = allAchievements.filter((a) => user.achievements.includes(a.id));
+
   return (
     <div className="mx-auto max-w-7xl space-y-5 px-4 py-6 sm:px-6">
 
-      {/* ── Hero card ───────────────────────────────────── */}
-      <div className="card overflow-hidden">
-        {/* Top gradient strip */}
-        <div className="h-2 w-full" style={{ background: 'linear-gradient(90deg, #5B8EF0, #8B5CF6, #EF4444)' }} />
+      {/* ── Identity card ───────────────────────────────────── */}
+      <div className="card-elevated overflow-hidden">
+        <div className="h-1.5 w-full" style={{ background: 'linear-gradient(90deg, #B8962E, #D4AF37, #E5C158, #D4AF37, #B8962E)' }} />
         <div className="p-6">
           <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-5">
               {user.avatar ? (
-                <img src={user.avatar} alt="avatar" className="h-20 w-20 rounded-2xl object-cover shadow-glow-sm" />
+                <img
+                  src={user.avatar}
+                  alt="avatar"
+                  className="h-20 w-20 rounded-2xl object-cover shadow-gold-sm"
+                  style={{ border: '1px solid rgba(212,175,55,0.2)' }}
+                />
               ) : (
                 <div
-                  className="flex h-20 w-20 items-center justify-center rounded-2xl text-3xl font-black text-white"
-                  style={{ background: 'linear-gradient(135deg, #5B8EF0, #8B5CF6)', boxShadow: '0 0 24px rgba(91,142,240,0.4)' }}
+                  className="flex h-20 w-20 items-center justify-center rounded-2xl text-3xl font-black text-surface shadow-gold-sm"
+                  style={{ background: 'linear-gradient(135deg, #D4AF37, #E5C158)' }}
                 >
                   {user.name.charAt(0)}
                 </div>
               )}
               <div>
-                <h1 className="text-3xl font-black text-white">{user.name}</h1>
-                <p className="mt-1 text-sm text-zinc-500">{user.email}</p>
-                <div className="mt-2">
+                <p className="label tracking-[0.25em]">Prime Member</p>
+                <h1 className="mt-1 text-3xl font-black text-white">{user.name}</h1>
+                <p className="mt-0.5 text-sm" style={{ color: '#4A4A4A' }}>{user.email}</p>
+                <div className="mt-3">
                   <RankBadge title={user.rankTitle} />
                 </div>
               </div>
             </div>
 
             {/* Level + XP */}
-            <div className="rounded-xl border border-glow/20 bg-glow/8 px-5 py-4 text-center">
-              <p className="label">Level</p>
+            <div
+              className="rounded-xl px-5 py-4 text-center"
+              style={{ background: 'rgba(212,175,55,0.06)', border: '1px solid rgba(212,175,55,0.15)' }}
+            >
+              <p className="label tracking-[0.2em]">Level</p>
               <p className="mt-1 text-4xl font-black text-white">{level}</p>
-              <div className="mt-2 h-1.5 w-28 overflow-hidden rounded-full bg-white/[0.06]">
+              <div className="mt-2 h-1.5 w-28 overflow-hidden rounded-full" style={{ background: 'rgba(255,255,255,0.04)' }}>
                 <motion.div
                   initial={{ width: 0 }}
                   animate={{ width: `${pct}%` }}
-                  transition={{ duration: 0.9 }}
+                  transition={{ duration: 1 }}
                   className="h-full rounded-full xp-shimmer"
                 />
               </div>
-              <p className="mt-1 text-[11px] text-zinc-600">{pct}% to next</p>
+              <p className="mt-1 text-[11px]" style={{ color: '#4A4A4A' }}>{pct}% to next</p>
             </div>
           </div>
         </div>
@@ -102,98 +115,139 @@ export default function Profile() {
           <div
             key={s.label}
             className="card flex flex-col items-center p-4 text-center"
-            style={{ borderTop: `2px solid ${s.color}40` }}
+            style={{ borderTop: `1px solid ${s.color}30` }}
           >
-            <s.icon size={16} style={{ color: s.color }} />
+            <s.icon size={15} style={{ color: s.color }} />
             <p className="mt-2 text-2xl font-black text-white">
               {typeof s.value === 'number' ? s.value.toLocaleString() : s.value}
-              <span className="text-sm text-zinc-500">{s.suffix}</span>
+              <span className="text-sm" style={{ color: '#3A3A3A' }}>{s.suffix}</span>
             </p>
             <p className="mt-0.5 label">{s.label}</p>
           </div>
         ))}
       </div>
 
-      <div className="grid gap-5 lg:grid-cols-[1fr_1fr]">
-
-        {/* ── Schedule editor ───────────────────────────────────── */}
-        <div className="card p-5">
-          <p className="label">Training Schedule</p>
-          <h2 className="mt-1 text-xl font-black text-white">Gym Days</h2>
-          <p className="mt-1 text-xs text-zinc-500">Streaks only count on selected days</p>
-          <div className="mt-5 grid grid-cols-4 gap-2 sm:grid-cols-7">
-            {daysOfWeek.slice(1).concat(daysOfWeek[0]).map((day) => {
-              const active = schedule.includes(day);
-              return (
-                <button
-                  key={day}
-                  type="button"
-                  onClick={() =>
-                    setSchedule((curr) =>
-                      curr.includes(day) ? curr.filter((d) => d !== day) : [...curr, day]
-                    )
-                  }
-                  className="rounded-xl py-3 text-xs font-bold transition-all duration-150"
-                  style={
-                    active
-                      ? { background: 'rgba(91,142,240,0.15)', color: '#5B8EF0', border: '1px solid rgba(91,142,240,0.35)' }
-                      : { background: 'rgba(255,255,255,0.03)', color: '#52525b', border: '1px solid rgba(255,255,255,0.06)' }
-                  }
-                >
-                  {day.slice(0, 3)}
-                </button>
-              );
-            })}
-          </div>
-          <button type="button" onClick={handleSave} className="btn-primary mt-5 w-full">
-            <Save size={14} /> {saved ? 'Saved ✓' : 'Save Schedule'}
+      {/* ── Tab nav ───────────────────────────────────── */}
+      <div className="flex gap-1 rounded-xl p-1 w-fit" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+        {[
+          { key: 'overview', label: 'Overview' },
+          { key: 'milestones', label: 'Milestones' },
+        ].map((t) => (
+          <button
+            key={t.key}
+            type="button"
+            onClick={() => setTab(t.key as typeof tab)}
+            className="relative rounded-lg px-4 py-2 text-sm font-semibold transition-colors"
+            style={{ color: tab === t.key ? '#fff' : '#4A4A4A' }}
+          >
+            {tab === t.key && (
+              <motion.span
+                layoutId="profile-tab"
+                className="absolute inset-0 rounded-lg"
+                style={{ background: 'rgba(212,175,55,0.1)', border: '1px solid rgba(212,175,55,0.2)' }}
+                transition={{ type: 'spring', stiffness: 420, damping: 30 }}
+              />
+            )}
+            <span className="relative">{t.label}</span>
           </button>
-        </div>
+        ))}
+      </div>
 
-        {/* ── Weekly activity chart ───────────────────────────────────── */}
-        <div className="card p-5">
-          <p className="label">Activity</p>
-          <h2 className="mt-1 text-xl font-black text-white">Weekly Check-ins</h2>
-          <div className="mt-6 flex items-end gap-2 h-28">
-            {chartData.map((v, i) => (
-              <div key={i} className="flex flex-1 flex-col items-center gap-1">
-                <motion.div
-                  initial={{ height: 0 }}
-                  animate={{ height: `${(v / maxChart) * 100}%` }}
-                  transition={{ delay: i * 0.06, duration: 0.5 }}
-                  className="w-full min-h-[4px] rounded-t-md"
-                  style={{
-                    background: v > 0
-                      ? `linear-gradient(to top, #5B8EF0, #8B5CF6)`
-                      : 'rgba(255,255,255,0.04)',
-                    opacity: v > 0 ? 1 : 0.5,
-                  }}
-                />
-              </div>
-            ))}
+      {tab === 'overview' && (
+        <div className="grid gap-5 lg:grid-cols-[1fr_1fr]">
+
+          {/* ── Schedule editor ───────────────────────────────────── */}
+          <div className="card p-5">
+            <p className="label tracking-[0.2em]">Training Schedule</p>
+            <h2 className="mt-1 text-xl font-black text-white">Your Gym Days</h2>
+            <p className="mt-1 text-xs" style={{ color: '#4A4A4A' }}>Streaks only count on days you commit to.</p>
+            <div className="mt-5 grid grid-cols-4 gap-2 sm:grid-cols-7">
+              {daysOfWeek.slice(1).concat(daysOfWeek[0]).map((day) => {
+                const active = schedule.includes(day);
+                return (
+                  <button
+                    key={day}
+                    type="button"
+                    onClick={() =>
+                      setSchedule((curr) =>
+                        curr.includes(day) ? curr.filter((d) => d !== day) : [...curr, day]
+                      )
+                    }
+                    className="rounded-xl py-3 text-xs font-bold transition-all duration-150"
+                    style={
+                      active
+                        ? { background: 'rgba(212,175,55,0.12)', color: '#D4AF37', border: '1px solid rgba(212,175,55,0.3)' }
+                        : { background: 'rgba(255,255,255,0.02)', color: '#3A3A3A', border: '1px solid rgba(255,255,255,0.05)' }
+                    }
+                  >
+                    {day.slice(0, 3)}
+                  </button>
+                );
+              })}
+            </div>
+            <button type="button" onClick={handleSave} className="btn-primary mt-5 w-full">
+              <Save size={14} /> {saved ? 'Saved ✓' : 'Save Schedule'}
+            </button>
           </div>
-          <div className="mt-2 flex justify-between">
-            {Array.from({ length: chartData.length }, (_, i) => (
-              <p key={i} className="flex-1 text-center label">W{i + 1}</p>
-            ))}
-          </div>
 
-          <div className="divider mt-4" />
-
-          {/* Achievements */}
-          <div className="mt-4">
-            <p className="label mb-3">Achievements</p>
-            <div className="flex flex-wrap gap-2">
-              {user.achievements.map((a) => (
-                <span key={a} className="badge badge-blue">{a}</span>
+          {/* ── Weekly activity chart ───────────────────────────────────── */}
+          <div className="card p-5">
+            <p className="label tracking-[0.2em]">Attendance Record</p>
+            <h2 className="mt-1 text-xl font-black text-white">8-Week History</h2>
+            <div className="mt-6 flex items-end gap-2 h-28">
+              {chartData.map((v, i) => (
+                <div key={i} className="flex flex-1 flex-col items-center gap-1">
+                  <motion.div
+                    initial={{ height: 0 }}
+                    animate={{ height: `${(v / maxChart) * 100}%` }}
+                    transition={{ delay: i * 0.06, duration: 0.5 }}
+                    className="w-full min-h-[3px] rounded-t-md"
+                    style={{
+                      background: v > 0
+                        ? 'linear-gradient(to top, #B8962E, #D4AF37)'
+                        : 'rgba(255,255,255,0.04)',
+                    }}
+                  />
+                </div>
               ))}
-              {user.achievements.length === 0 && (
-                <p className="text-xs text-zinc-600">Complete challenges to earn achievements.</p>
-              )}
+            </div>
+            <div className="mt-2 flex justify-between">
+              {Array.from({ length: chartData.length }, (_, i) => (
+                <p key={i} className="flex-1 text-center label">W{i + 1}</p>
+              ))}
+            </div>
+
+            <div className="divider mt-4" />
+
+            {/* Recent milestones */}
+            <div className="mt-4">
+              <p className="label mb-3 tracking-[0.2em]">Recent Milestones</p>
+              <div className="flex flex-wrap gap-2">
+                {earnedMilestones.slice(0, 6).map((m) => (
+                  <span
+                    key={m.id}
+                    className="rounded-full px-2.5 py-1 text-xs font-bold"
+                    style={{ background: 'rgba(212,175,55,0.08)', color: '#D4AF37', border: '1px solid rgba(212,175,55,0.18)' }}
+                  >
+                    {m.name}
+                  </span>
+                ))}
+                {earnedMilestones.length === 0 && (
+                  <p className="text-xs" style={{ color: '#3A3A3A' }}>
+                    Discipline is built one action at a time.
+                  </p>
+                )}
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
+
+      {tab === 'milestones' && (
+        <div className="card p-6">
+          <AchievementsTab userAchievements={user.achievements} />
+        </div>
+      )}
     </div>
   );
 }

@@ -25,9 +25,9 @@ export const getCurrentStreak = (history: AttendanceHistory, schedule: string[])
 };
 
 export const getStreakLevel = (streak: number) => {
-  if (streak >= 30) return 'Shadow Monarch';
-  if (streak >= 14) return 'Fortnight Fighter';
-  if (streak >= 7) return 'Week Warrior';
-  if (streak >= 1) return 'Rising Flame';
-  return 'Dormant';
+  if (streak >= 30) return 'Monarch';
+  if (streak >= 14) return 'Prime';
+  if (streak >= 7) return 'Vanguard';
+  if (streak >= 1) return 'Forged';
+  return 'Initiate';
 };
