@@ -33,7 +33,7 @@ export default function CheckInModal() {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.2 }}
-          className="fixed inset-0 z-50 flex items-end justify-center px-4 pb-6 sm:items-center sm:pb-0"
+          className="fixed inset-0 z-[60] flex items-end justify-center px-4 pb-24 sm:items-center sm:pb-0"
           style={{ background: 'rgba(0,0,0,0.88)', backdropFilter: 'blur(16px)' }}
           onClick={handleClose}
         >

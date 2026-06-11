@@ -19,8 +19,12 @@ const getCategory = (cat: string) =>
 
 export default function ChallengeCard({ id, completed }: { id: number; completed: boolean }) {
   const completeChallenge = useAuthStore((state) => state.completeChallenge);
+  const user = useAuthStore((state) => state.getUser());
   const challenge = challenges.find((item) => item.id === id);
   if (!challenge) return null;
+
+  const today = new Date().toISOString().slice(0, 10);
+  const checkedInToday = user?.lastCheckInDate === today;
 
   const cfg = getCategory(challenge.category);
   const Icon = cfg.icon;
@@ -85,7 +89,7 @@ export default function ChallengeCard({ id, completed }: { id: number; completed
             <CheckCircle2 size={13} />
             Cleared
           </div>
-        ) : (
+        ) : checkedInToday ? (
           <button
             type="button"
             onClick={() => completeChallenge(challenge.id, challenge.xp)}
@@ -94,6 +98,13 @@ export default function ChallengeCard({ id, completed }: { id: number; completed
           >
             Complete
           </button>
+        ) : (
+          <div
+            className="w-full rounded-full py-2.5 text-center text-[11px] font-bold uppercase tracking-wider"
+            style={{ background: 'rgba(255,255,255,0.04)', color: '#3A3A3A', border: '1px solid rgba(255,255,255,0.06)' }}
+          >
+            Check in first
+          </div>
         )}
       </div>
     </motion.div>

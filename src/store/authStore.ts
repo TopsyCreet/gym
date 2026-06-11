@@ -5,6 +5,7 @@ import { dummyUsers } from '../data/dummyUsers';
 import { challenges } from '../data/challenges';
 import { defaultWorkoutPlan, WorkoutType } from '../data/workoutPlans';
 import { gyms } from '../data/gyms';
+import { getLevelFromXp } from '../utils/xpCalculator';
 
 export type AttendanceHistory = Record<string, boolean>;
 export type DailyChallengeState = {
@@ -543,14 +544,12 @@ export const useAuthStore = create<AppState>((set, get) => ({
     const user = state.users.find((item) => item.id === state.currentUserId);
     if (!user) return;
     const nextXp = user.xp + amount;
-    const nextLevel = user.level + (nextXp >= 300 + (user.level - 1) * 400 ? 1 : 0);
-    const updated = { ...user, xp: nextXp, level: nextLevel };
+    const nextLevel = getLevelFromXp(nextXp);
+    const updated: UserProfile = { ...user, xp: nextXp, level: nextLevel };
     if (nextLevel > user.level) {
       updated.achievements = Array.from(new Set([...updated.achievements, 'level-two']));
     }
-    const users = state.users.map((item) => (item.id === updated.id ? updated : item));
-    set({ users });
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ users, currentUserId: state.currentUserId }));
+    get().updateUser(updated);
   },
   resetStreak: () => {
     const state = get();
@@ -581,17 +580,17 @@ export const useAuthStore = create<AppState>((set, get) => ({
     if (!user) return;
     const existing = user.dailyChallenges.find((item) => item.id === challengeId);
     if (existing?.completed) return;
+    const newXp = user.xp + xp;
     const dailyChallenges = user.dailyChallenges.map((item) => item.id === challengeId ? { ...item, completed: true } : item);
-    const updated = {
+    const updated: UserProfile = {
       ...user,
-      xp: user.xp + xp,
+      xp: newXp,
+      level: getLevelFromXp(newXp),
       challengesCompleted: user.challengesCompleted + 1,
       dailyChallenges,
       achievements: Array.from(new Set([...user.achievements, 'challenge-beast']))
     };
-    const users = state.users.map((item) => (item.id === updated.id ? updated : item));
-    set({ users });
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ users, currentUserId: state.currentUserId }));
+    get().updateUser(updated);
   },
   addCheckIn: (date) => {
     const state = get();
@@ -599,24 +598,24 @@ export const useAuthStore = create<AppState>((set, get) => ({
     if (!user) return;
     const newHistory = { ...user.attendanceHistory, [date]: true };
     const currentStreak = user.streak + 1;
+    const newXp = user.xp + 100;
     // Generate trials on first check-in if none exist (new users or Supabase users)
     const dailyChallenges = user.dailyChallenges.length > 0
       ? user.dailyChallenges
       : challenges.slice(0, 3).map((c) => ({ id: c.id, completed: false }));
-    const updated = {
+    const updated: UserProfile = {
       ...user,
       attendanceHistory: newHistory,
       streak: currentStreak,
       longestStreak: Math.max(user.longestStreak, currentStreak),
       checkIns: user.checkIns + 1,
-      xp: user.xp + 100,
+      xp: newXp,
+      level: getLevelFromXp(newXp),
       lastCheckInDate: date,
       dailyChallenges,
       freezeTokens: user.freezeTokens + (currentStreak % 7 === 0 ? 1 : 0),
       achievements: Array.from(new Set([...user.achievements, 'first-checkin']))
     };
-    const users = state.users.map((item) => (item.id === updated.id ? updated : item));
-    set({ users });
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ users, currentUserId: state.currentUserId }));
+    get().updateUser(updated);
   }
 }));
