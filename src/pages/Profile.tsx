@@ -1,36 +1,66 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
+import { useGSAP } from '@gsap/react';
+import gsap from 'gsap';
 import { useAuthStore } from '../store/authStore';
-import { getXpProgress } from '../utils/xpCalculator';
 import { daysOfWeek } from '../utils/streakCalculator';
 import RankBadge from '../components/RankBadge';
-import AchievementsTab from '../components/AchievementsTab';
-import { TrendingUp, Target, CheckCircle, BarChart2, Save } from 'lucide-react';
-import { allAchievements } from '../data/achievements';
 import { getRankByTitle } from '../data/ranks';
+import { TrendingUp, Target, CheckCircle, Save } from 'lucide-react';
+
+type RankTier = { title: string; minCheckIns: number };
+
+const RANK_THRESHOLDS: RankTier[] = [
+  { title: 'Initiate', minCheckIns: 0 },
+  { title: 'Forged',   minCheckIns: 10 },
+  { title: 'Vanguard', minCheckIns: 25 },
+  { title: 'Elite',    minCheckIns: 50 },
+  { title: 'Prime',    minCheckIns: 100 },
+  { title: 'Monarch',  minCheckIns: 200 },
+];
+
+function getRankProgress(checkIns: number) {
+  let currentIdx = 0;
+  for (let i = 0; i < RANK_THRESHOLDS.length; i++) {
+    if (checkIns >= RANK_THRESHOLDS[i].minCheckIns) currentIdx = i;
+  }
+  const isMax = currentIdx === RANK_THRESHOLDS.length - 1;
+  const current = RANK_THRESHOLDS[currentIdx];
+  const next = isMax ? null : RANK_THRESHOLDS[currentIdx + 1];
+  const pct = isMax
+    ? 1
+    : (checkIns - current.minCheckIns) / (next!.minCheckIns - current.minCheckIns);
+  return { current, next, pct: Math.min(1, pct), isMax };
+}
 
 export default function Profile() {
   const user = useAuthStore((state) => state.getUser());
   const updateUser = useAuthStore((state) => state.updateUser);
   const [schedule, setSchedule] = useState(user?.schedule ?? []);
   const [saved, setSaved] = useState(false);
-  const [tab, setTab] = useState<'overview' | 'milestones'>('overview');
+  const rankBarRef = useRef<HTMLDivElement>(null);
 
-  if (!user) return null;
+  const rank = getRankByTitle(user?.rankTitle ?? 'Initiate');
+  const { current, next, pct, isMax } = getRankProgress(user?.checkIns ?? 0);
 
-  const { level, progress } = getXpProgress(user.xp);
-  const pct = Math.round(progress * 100);
-  const rank = getRankByTitle(user.rankTitle);
+  useGSAP(() => {
+    if (!rankBarRef.current) return;
+    gsap.fromTo(
+      rankBarRef.current,
+      { width: '0%' },
+      { width: `${Math.round(pct * 100)}%`, duration: 1.4, ease: 'power3.out', delay: 0.3 }
+    );
+  }, [pct]);
 
   const statCards = [
-    { icon: BarChart2,    label: 'Prime Points',   value: user.xp,                  color: '#D4AF37', suffix: '' },
-    { icon: TrendingUp,   label: 'Active Streak',  value: user.streak,              color: '#2ECC71', suffix: 'd' },
-    { icon: TrendingUp,   label: 'Best Streak',    value: user.longestStreak,       color: '#A1A1AA', suffix: 'd' },
-    { icon: CheckCircle,  label: 'Commitments',    value: user.checkIns,            color: '#4A90D9', suffix: '' },
-    { icon: Target,       label: 'Trials Cleared', value: user.challengesCompleted, color: '#CD853F', suffix: '' },
+    { icon: CheckCircle, label: 'Sessions',      value: user?.checkIns ?? 0,            color: '#3D7FD4', suffix: '' },
+    { icon: TrendingUp,  label: 'Active Streak', value: user?.streak ?? 0,              color: '#27AE60', suffix: 'd' },
+    { icon: TrendingUp,  label: 'Best Streak',   value: user?.longestStreak ?? 0,       color: '#A1A1AA', suffix: 'd' },
+    { icon: Target,      label: 'Trials',        value: user?.challengesCompleted ?? 0, color: '#D4A017', suffix: '' },
   ];
 
   const handleSave = () => {
+    if (!user) return;
     updateUser({ ...user, schedule });
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
@@ -45,7 +75,7 @@ export default function Profile() {
       const count = Array.from({ length: 7 }).reduce((sum: number, _, j: number) => {
         const d = new Date(weekStart);
         d.setDate(weekStart.getDate() + j);
-        return sum + (user.attendanceHistory[d.toISOString().slice(0, 10)] ? 1 : 0);
+        return sum + ((user?.attendanceHistory ?? {})[d.toISOString().slice(0, 10)] ? 1 : 0);
       }, 0);
       weeks.push(count);
     }
@@ -53,20 +83,18 @@ export default function Profile() {
   }, [user]);
 
   const maxChart = Math.max(...chartData, 1);
-  const earnedMilestones = allAchievements.filter((a) => user.achievements.includes(a.id));
 
-  const tabItems = [
-    { key: 'overview',    label: 'Overview' },
-    { key: 'milestones',  label: 'Milestones' },
-  ] as const;
+  if (!user) return null;
 
   return (
     <div className="mx-auto max-w-6xl space-y-4 px-4 py-5 sm:px-6">
 
-      {/* ── Identity hero ────────────────────────────────────── */}
+      {/* ── Identity hero */}
       <div className="card-hero overflow-hidden">
-        {/* Rank colour accent line */}
-        <div className="h-px w-full" style={{ background: `linear-gradient(90deg, transparent, ${rank.color}60, transparent)` }} />
+        <div
+          className="h-px w-full"
+          style={{ background: `linear-gradient(90deg, transparent, ${rank.color}60, transparent)` }}
+        />
 
         <div className="p-7 sm:p-9">
           <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
@@ -93,45 +121,54 @@ export default function Profile() {
                 <h1 className="mt-1 text-3xl font-black leading-tight text-white sm:text-4xl">
                   {user.name}
                 </h1>
-                <p className="mt-0.5 text-sm" style={{ color: '#3A3A3A' }}>{user.email}</p>
+                <p className="mt-0.5 text-sm" style={{ color: 'var(--text-secondary)' }}>
+                  {user.email}
+                </p>
                 <div className="mt-3">
                   <RankBadge title={user.rankTitle} size="md" />
                 </div>
               </div>
             </div>
 
-            {/* Level + XP ring */}
+            {/* Rank evidence card — replaces Level/XP */}
             <div
-              className="flex flex-col items-center justify-center rounded-2xl px-7 py-5 text-center sm:min-w-[9rem]"
+              className="flex flex-col rounded-2xl px-7 py-5 sm:min-w-[10rem]"
               style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.06)' }}
             >
-              <p className="label tracking-[0.22em]">Level</p>
-              <p className="mt-1.5 text-5xl font-black text-white">{level}</p>
+              <p className="label tracking-[0.22em]">Check-Ins</p>
+              <p className="mt-1.5 text-5xl font-black text-white tabular-nums">{user.checkIns}</p>
+              <p className="mt-0.5 text-xs" style={{ color: 'var(--text-secondary)' }}>
+                sessions proven
+              </p>
 
-              {/* Progress arc */}
-              <div className="mt-3 w-28">
-                <div className="h-px overflow-hidden rounded-full" style={{ background: 'rgba(255,255,255,0.06)' }}>
-                  <motion.div
-                    initial={{ width: 0 }}
-                    animate={{ width: `${pct}%` }}
-                    transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
-                    className="h-full rounded-full xp-shimmer"
+              <div className="mt-4">
+                <div
+                  className="h-1 overflow-hidden rounded-full"
+                  style={{ background: 'rgba(255,255,255,0.06)' }}
+                >
+                  <div
+                    ref={rankBarRef}
+                    className="h-full rounded-full"
+                    style={{ width: '0%', background: `linear-gradient(90deg, ${rank.color}88, ${rank.color})` }}
                   />
                 </div>
-                <p className="mt-1.5 text-[11px]" style={{ color: '#3A3A3A' }}>{pct}% to next</p>
+                <p className="mt-1.5 text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+                  {isMax
+                    ? 'Maximum rank achieved'
+                    : `${next!.minCheckIns - user.checkIns} more to ${next!.title}`}
+                </p>
               </div>
             </div>
           </div>
 
-          {/* Manifesto line from rank */}
-          <p className="mt-6 text-sm italic" style={{ color: '#3A3A3A' }}>
+          <p className="mt-6 text-sm italic" style={{ color: 'var(--text-secondary)' }}>
             {rank.manifesto}
           </p>
         </div>
       </div>
 
-      {/* ── Stats ─────────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+      {/* ── Stat cards (no XP/level) */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {statCards.map((s, i) => (
           <motion.div
             key={s.label}
@@ -139,147 +176,117 @@ export default function Profile() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.06, duration: 0.4 }}
             className="card flex flex-col items-center p-4 text-center"
-            style={{ borderTop: `1px solid ${s.color}25` }}
+            style={{ borderTop: `1px solid ${s.color}28` }}
           >
             <s.icon size={14} style={{ color: s.color }} />
             <p className="mt-2.5 text-2xl font-black text-white">
               {typeof s.value === 'number' ? s.value.toLocaleString() : s.value}
-              <span className="text-sm font-semibold" style={{ color: '#3A3A3A' }}>{s.suffix}</span>
+              <span className="text-sm font-semibold" style={{ color: 'var(--text-secondary)' }}>
+                {s.suffix}
+              </span>
             </p>
             <p className="mt-0.5 label">{s.label}</p>
           </motion.div>
         ))}
       </div>
 
-      {/* ── Tab nav ───────────────────────────────────────────── */}
-      <div
-        className="flex gap-1 rounded-2xl p-1 w-fit"
-        style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.055)' }}
-      >
-        {tabItems.map((t) => (
-          <button
-            key={t.key}
-            type="button"
-            onClick={() => setTab(t.key)}
-            className="relative rounded-xl px-5 py-2 text-sm font-semibold transition-colors"
-            style={{ color: tab === t.key ? '#fff' : '#4A4A4A' }}
-          >
-            {tab === t.key && (
-              <motion.span
-                layoutId="profile-tab"
-                className="absolute inset-0 rounded-xl"
-                style={{ background: 'rgba(212,175,55,0.09)', border: '1px solid rgba(212,175,55,0.18)' }}
-                transition={{ type: 'spring', stiffness: 480, damping: 34 }}
-              />
-            )}
-            <span className="relative">{t.label}</span>
+      {/* ── Two-col content grid */}
+      <div className="grid gap-4 lg:grid-cols-2">
+
+        {/* Schedule editor */}
+        <div className="card p-6">
+          <p className="label tracking-[0.22em]">Training Schedule</p>
+          <h2 className="mt-1 text-xl font-black text-white">Committed Days</h2>
+          <p className="mt-1 text-xs" style={{ color: 'var(--text-secondary)' }}>
+            Streaks only count on days you commit to.
+          </p>
+          <div className="mt-5 grid grid-cols-4 gap-2 sm:grid-cols-7">
+            {daysOfWeek.slice(1).concat(daysOfWeek[0]).map((day) => {
+              const active = schedule.includes(day);
+              return (
+                <button
+                  key={day}
+                  type="button"
+                  onClick={() =>
+                    setSchedule((curr) =>
+                      curr.includes(day) ? curr.filter((d) => d !== day) : [...curr, day]
+                    )
+                  }
+                  className="rounded-xl py-3 text-xs font-bold transition-all duration-150"
+                  style={
+                    active
+                      ? { background: 'rgba(212,160,23,0.1)', color: 'var(--gold)', border: '1px solid rgba(212,160,23,0.25)' }
+                      : { background: 'rgba(255,255,255,0.025)', color: 'var(--text-muted)', border: '1px solid rgba(255,255,255,0.05)' }
+                  }
+                >
+                  {day.slice(0, 3)}
+                </button>
+              );
+            })}
+          </div>
+          <button type="button" onClick={handleSave} className="btn-primary mt-5 w-full">
+            <Save size={13} />
+            {saved ? 'Schedule Saved ✓' : 'Save Schedule'}
           </button>
-        ))}
-      </div>
+        </div>
 
-      {/* ── Overview ─────────────────────────────────────────── */}
-      {tab === 'overview' && (
-        <div className="grid gap-4 lg:grid-cols-2">
+        {/* Attendance chart + rank ladder */}
+        <div className="card p-6">
+          <p className="label tracking-[0.22em]">Attendance Record</p>
+          <h2 className="mt-1 text-xl font-black text-white">8-Week History</h2>
 
-          {/* Schedule */}
-          <div className="card p-6">
-            <p className="label tracking-[0.22em]">Training Schedule</p>
-            <h2 className="mt-1 text-xl font-black text-white">Committed Days</h2>
-            <p className="mt-1 text-xs" style={{ color: '#3A3A3A' }}>
-              Streaks only count on days you commit to.
-            </p>
-            <div className="mt-5 grid grid-cols-4 gap-2 sm:grid-cols-7">
-              {daysOfWeek.slice(1).concat(daysOfWeek[0]).map((day) => {
-                const active = schedule.includes(day);
+          <div className="mt-6 flex h-28 items-end gap-1.5">
+            {chartData.map((v, i) => (
+              <div key={i} className="flex flex-1 flex-col items-center gap-1">
+                <motion.div
+                  initial={{ height: 0 }}
+                  animate={{ height: `${Math.max(2, (v / maxChart) * 100)}%` }}
+                  transition={{ delay: i * 0.07, duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+                  className="w-full rounded-t-[3px]"
+                  style={{
+                    background: v > 0 ? 'linear-gradient(to top, #B8962E, #D4A017)' : 'rgba(255,255,255,0.04)',
+                    minHeight: 2,
+                  }}
+                />
+              </div>
+            ))}
+          </div>
+          <div className="mt-2 flex justify-between">
+            {chartData.map((_, i) => (
+              <p key={i} className="flex-1 text-center label">W{i + 1}</p>
+            ))}
+          </div>
+
+          <div className="divider mt-5" />
+
+          {/* Rank ladder — replaces badge wall */}
+          <div className="mt-4">
+            <p className="label mb-3 tracking-[0.2em]">Rank Ladder</p>
+            <div className="flex flex-wrap gap-1.5">
+              {RANK_THRESHOLDS.map((tier) => {
+                const reached = user.checkIns >= tier.minCheckIns;
+                const isCurrent = tier.title === current.title;
                 return (
-                  <button
-                    key={day}
-                    type="button"
-                    onClick={() =>
-                      setSchedule((curr) =>
-                        curr.includes(day) ? curr.filter((d) => d !== day) : [...curr, day]
-                      )
-                    }
-                    className="rounded-xl py-3 text-xs font-bold transition-all duration-150"
+                  <span
+                    key={tier.title}
+                    className="rounded-full px-2.5 py-1 text-xs font-bold"
                     style={
-                      active
-                        ? { background: 'rgba(212,175,55,0.1)', color: '#D4AF37', border: '1px solid rgba(212,175,55,0.25)' }
-                        : { background: 'rgba(255,255,255,0.025)', color: '#3A3A3A', border: '1px solid rgba(255,255,255,0.05)' }
+                      isCurrent
+                        ? { background: `${rank.color}18`, color: rank.color, border: `1px solid ${rank.color}32` }
+                        : reached
+                        ? { background: 'rgba(255,255,255,0.05)', color: 'var(--text-secondary)', border: '1px solid rgba(255,255,255,0.07)' }
+                        : { background: 'transparent', color: 'var(--text-faint)', border: '1px solid rgba(255,255,255,0.04)' }
                     }
                   >
-                    {day.slice(0, 3)}
-                  </button>
+                    {tier.title}
+                    {reached && !isCurrent && ' ✓'}
+                  </span>
                 );
               })}
             </div>
-            <button type="button" onClick={handleSave} className="btn-primary mt-5 w-full">
-              <Save size={13} />
-              {saved ? 'Schedule Saved ✓' : 'Save Schedule'}
-            </button>
-          </div>
-
-          {/* Attendance chart */}
-          <div className="card p-6">
-            <p className="label tracking-[0.22em]">Attendance Record</p>
-            <h2 className="mt-1 text-xl font-black text-white">8-Week History</h2>
-
-            <div className="mt-6 flex h-28 items-end gap-1.5">
-              {chartData.map((v, i) => (
-                <div key={i} className="flex flex-1 flex-col items-center gap-1">
-                  <motion.div
-                    initial={{ height: 0 }}
-                    animate={{ height: `${Math.max(2, (v / maxChart) * 100)}%` }}
-                    transition={{ delay: i * 0.07, duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-                    className="w-full rounded-t-[3px]"
-                    style={{
-                      background: v > 0
-                        ? `linear-gradient(to top, #B8962E, #D4AF37)`
-                        : 'rgba(255,255,255,0.04)',
-                      minHeight: 2,
-                    }}
-                  />
-                </div>
-              ))}
-            </div>
-            <div className="mt-2 flex justify-between">
-              {chartData.map((_, i) => (
-                <p key={i} className="flex-1 text-center label">W{i + 1}</p>
-              ))}
-            </div>
-
-            <div className="divider mt-5" />
-
-            {/* Recent milestones */}
-            <div className="mt-4">
-              <p className="label mb-3 tracking-[0.2em]">Recent Milestones</p>
-              {earnedMilestones.length > 0 ? (
-                <div className="flex flex-wrap gap-2">
-                  {earnedMilestones.slice(0, 6).map((m) => (
-                    <span
-                      key={m.id}
-                      className="rounded-full px-2.5 py-1 text-xs font-bold"
-                      style={{ background: 'rgba(212,175,55,0.07)', color: '#D4AF37', border: '1px solid rgba(212,175,55,0.16)' }}
-                    >
-                      {m.name}
-                    </span>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-xs" style={{ color: '#2A2A2A' }}>
-                  Discipline is built one action at a time.
-                </p>
-              )}
-            </div>
           </div>
         </div>
-      )}
-
-      {/* ── Milestones ────────────────────────────────────────── */}
-      {tab === 'milestones' && (
-        <div className="card p-6">
-          <AchievementsTab userAchievements={user.achievements} />
-        </div>
-      )}
+      </div>
     </div>
   );
 }

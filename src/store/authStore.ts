@@ -60,6 +60,40 @@ type AppState = {
 
 const STORAGE_KEY = 'prime_app_data';
 
+// ── Daily challenge persistence (date-keyed, expires at midnight) ─────────
+const dailyKey = (uid: string) => `prime_daily_${uid}`;
+
+function loadDailyChallenges(uid: string): DailyChallengeState[] | null {
+  try {
+    const raw = localStorage.getItem(dailyKey(uid));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (parsed.date !== new Date().toISOString().slice(0, 10)) return null;
+    return parsed.challenges as DailyChallengeState[];
+  } catch { return null; }
+}
+
+function saveDailyChallenges(uid: string, ch: DailyChallengeState[]) {
+  try {
+    localStorage.setItem(
+      dailyKey(uid),
+      JSON.stringify({ date: new Date().toISOString().slice(0, 10), challenges: ch })
+    );
+  } catch {}
+}
+
+// Deterministic seeded shuffle — same 3 challenges for all users on the same day
+function generateDailySet(dateStr: string): DailyChallengeState[] {
+  let seed = 0;
+  for (let i = 0; i < dateStr.length; i++) seed = (seed * 31 + dateStr.charCodeAt(i)) | 0;
+  const ids = challenges.map((c) => c.id);
+  for (let i = ids.length - 1; i > 0; i--) {
+    seed = (seed * 1664525 + 1013904223) | 0;
+    [ids[i], ids[Math.abs(seed) % (i + 1)]] = [ids[Math.abs(seed) % (i + 1)], ids[i]];
+  }
+  return ids.slice(0, 3).map((id) => ({ id, completed: false }));
+}
+
 const generateAttendance = (days = 30) => {
   const history: AttendanceHistory = {};
   const today = new Date();

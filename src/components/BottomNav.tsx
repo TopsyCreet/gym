@@ -1,11 +1,12 @@
 import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Home, Trophy, User } from 'lucide-react';
+import { Home, Activity, Trophy, User } from 'lucide-react';
 
 const tabs = [
-  { href: '/dashboard',   label: 'Home',    Icon: Home },
-  { href: '/leaderboard', label: 'Ranks',   Icon: Trophy },
-  { href: '/profile',     label: 'Profile', Icon: User },
+  { href: '/dashboard',   label: 'Home',     Icon: Home },
+  { href: '/progress',    label: 'Progress', Icon: Activity },
+  { href: '/leaderboard', label: 'Ranks',    Icon: Trophy },
+  { href: '/profile',     label: 'Profile',  Icon: User },
 ];
 
 export default function BottomNav() {
