@@ -1,6 +1,8 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
+import logoPng from '../assets/brand/logo.png';
+import mascotHappy from '../assets/brand/mascot_happy.png';
 
 const up = (delay = 0) => ({
   initial: { opacity: 0, y: 24 },
@@ -25,20 +27,20 @@ const pillars = [
     symbol: '▲',
   },
   {
-    title: 'Prime Points',
-    body: 'Every commitment earns progress. Rise from Initiate to Monarch through repeated action, not intention.',
+    title: 'Evidence-Based Ranks',
+    body: 'Rank is not self-declared. Check-ins drive promotion — 10 to Forged, 25 to Vanguard, 50 to Elite, 100 to Prime, 200 to Monarch.',
     color: '#A1A1AA',
     symbol: '◆',
   },
   {
-    title: 'Global Standing',
-    body: 'Compete across three tracks: Streak, Points, and Commitments. Your standing reflects your discipline.',
+    title: 'Gym Community',
+    body: 'Compete within your gym each month. Pure consistency, no artificial scores. Give kudos to members who show up.',
     color: '#2ECC71',
     symbol: '◇',
   },
   {
-    title: 'Six Rank Tiers',
-    body: 'Initiate. Forged. Vanguard. Elite. Prime. Monarch. Each rank is earned — and felt.',
+    title: 'Daily Trials',
+    body: 'Three challenges rotate every day — strength, endurance, recovery. Completing them compounds the record beyond attendance alone.',
     color: '#4A90D9',
     symbol: '⬡',
   },
@@ -66,9 +68,29 @@ export default function Landing() {
           />
         </div>
 
+        {/* Brand mark */}
+        <motion.div {...up(0)} className="mb-8 flex justify-center">
+          <div className="relative h-20 w-20">
+            <div
+              className="absolute inset-0 rounded-3xl opacity-25 blur-[20px]"
+              style={{ background: '#D4AF37' }}
+            />
+            <img src={logoPng} alt="PRIME" className="relative h-20 w-20 object-contain" />
+          </div>
+        </motion.div>
+
+        {/* Mascot — peeking in from bottom-right of hero */}
+        <img
+          src={mascotHappy}
+          alt=""
+          aria-hidden="true"
+          className="pointer-events-none absolute bottom-0 right-4 sm:right-10 select-none"
+          style={{ width: 130, opacity: 0.88, transform: 'rotate(-6deg)' }}
+        />
+
         {/* Eyebrow */}
         <motion.div
-          {...up(0)}
+          {...up(0.04)}
           className="mb-10 inline-flex items-center gap-2.5 rounded-full px-4 py-2"
           style={{ background: 'rgba(212,175,55,0.05)', border: '1px solid rgba(212,175,55,0.14)' }}
         >

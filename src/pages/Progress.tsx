@@ -6,6 +6,7 @@ import { ChevronLeft, ChevronRight, Check, X as XIcon, Minus } from 'lucide-reac
 import { useAuthStore } from '../store/authStore';
 import type { AttendanceHistory } from '../store/authStore';
 import StatCounter from '../components/ui/StatCounter';
+import mascotHappy from '../assets/brand/mascot_happy.png';
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 
@@ -301,9 +302,12 @@ export default function Progress() {
     <div ref={containerRef} className="mx-auto max-w-2xl space-y-4 px-4 py-5 sm:px-6 pb-24">
 
       {/* ── Page title ─────────────────────────────────────────────── */}
-      <div className="px-1" data-card>
-        <p className="label">Progress</p>
-        <h1 className="mt-0.5 text-display font-black leading-none text-white">Your Record</h1>
+      <div className="flex items-center justify-between gap-4 px-1" data-card>
+        <div>
+          <p className="label">Progress</p>
+          <h1 className="mt-0.5 text-display font-black leading-none text-white">Your Record</h1>
+        </div>
+        <img src={mascotHappy} alt="" aria-hidden="true" style={{ width: 96 }} />
       </div>
 
       {/* ── Streak spotlight ───────────────────────────────────────── */}

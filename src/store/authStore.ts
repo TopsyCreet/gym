@@ -82,6 +82,24 @@ function saveDailyChallenges(uid: string, ch: DailyChallengeState[]) {
   } catch {}
 }
 
+// Check-in count → rank title (spec thresholds)
+const CHECK_IN_RANK_THRESHOLDS = [
+  { title: 'Initiate', minCheckIns: 0 },
+  { title: 'Forged',   minCheckIns: 10 },
+  { title: 'Vanguard', minCheckIns: 25 },
+  { title: 'Elite',    minCheckIns: 50 },
+  { title: 'Prime',    minCheckIns: 100 },
+  { title: 'Monarch',  minCheckIns: 200 },
+] as const;
+
+function getRankTitleByCheckIns(checkIns: number): string {
+  let title: string = 'Initiate';
+  for (const tier of CHECK_IN_RANK_THRESHOLDS) {
+    if (checkIns >= tier.minCheckIns) title = tier.title;
+  }
+  return title;
+}
+
 // Deterministic seeded shuffle — same 3 challenges for all users on the same day
 function generateDailySet(dateStr: string): DailyChallengeState[] {
   let seed = 0;
@@ -185,7 +203,7 @@ const mapProfileToUser = (profile: any, email: string): UserProfile => ({
   challengesCompleted: profile.challenges_completed ?? 0,
   attendanceHistory: profile.attendance_history ?? {},
   dailyChallenges: [],
-  freezeTokens: 0,
+  freezeTokens: profile.freeze_tokens ?? 0,
   achievements: profile.achievements ?? [],
   lastCheckInDate: profile.last_checkin_date ?? undefined,
   phone: profile.phone ?? '',
@@ -214,6 +232,12 @@ export const useAuthStore = create<AppState>((set, get) => ({
         }
       }
     } catch {}
+
+    // Apply date-based expiry to saved daily challenges before they enter state
+    if (savedUserData && savedUserId) {
+      const todaysChallenges = loadDailyChallenges(savedUserId);
+      savedUserData = { ...savedUserData, dailyChallenges: todaysChallenges ?? [] };
+    }
 
     const baseUsers = seedUsers();
     // Merge: keep saved user data intact, use fresh seeds for everyone else
@@ -258,9 +282,11 @@ export const useAuthStore = create<AppState>((set, get) => ({
             phone: profile.phone ?? '',
           };
 
-          // Preserve dailyChallenges from existing in-memory state — not stored in Supabase
+          // Restore today's trials from date-keyed localStorage (expires at midnight)
           const existing = get().users.find((u) => u.id === userId);
-          mapped.dailyChallenges = existing?.dailyChallenges ?? [];
+          mapped.dailyChallenges = loadDailyChallenges(userId) ?? [];
+          // Preserve freezeTokens — not yet a Supabase column, falls back to localStorage value
+          mapped.freezeTokens = (profile.freeze_tokens as number | null) ?? existing?.freezeTokens ?? 0;
           set((s) => ({ users: [mapped, ...s.users.filter((u) => u.id !== mapped.id)], currentUserId: userId }));
         }
       }
@@ -540,6 +566,10 @@ export const useAuthStore = create<AppState>((set, get) => ({
     const users = state.users.map((item) => (item.id === user.id ? user : item));
     set({ users });
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ users, currentUserId: state.currentUserId }));
+    // Persist today's trial state to its own date-keyed entry so it survives refreshes
+    if (user.dailyChallenges.length > 0) {
+      saveDailyChallenges(user.id, user.dailyChallenges);
+    }
     if (!supabaseConfigured || !supabase) {
       return;
     }
@@ -561,7 +591,9 @@ export const useAuthStore = create<AppState>((set, get) => ({
           challenges_completed: user.challengesCompleted,
           attendance_history: user.attendanceHistory,
           achievements: user.achievements,
-          last_checkin_date: user.lastCheckInDate ?? null
+          last_checkin_date: user.lastCheckInDate ?? null,
+          freeze_tokens: user.freezeTokens,
+          phone: user.phone,
         });
       } catch (e) {
         // ignore
@@ -633,16 +665,18 @@ export const useAuthStore = create<AppState>((set, get) => ({
     const newHistory = { ...user.attendanceHistory, [date]: true };
     const currentStreak = user.streak + 1;
     const newXp = user.xp + 100;
-    // Generate trials on first check-in if none exist (new users or Supabase users)
+    const newCheckIns = user.checkIns + 1;
+    // Generate today's trial set on first check-in; keep existing if already generated
     const dailyChallenges = user.dailyChallenges.length > 0
       ? user.dailyChallenges
-      : challenges.slice(0, 3).map((c) => ({ id: c.id, completed: false }));
+      : generateDailySet(date);
     const updated: UserProfile = {
       ...user,
       attendanceHistory: newHistory,
       streak: currentStreak,
       longestStreak: Math.max(user.longestStreak, currentStreak),
-      checkIns: user.checkIns + 1,
+      checkIns: newCheckIns,
+      rankTitle: getRankTitleByCheckIns(newCheckIns),
       xp: newXp,
       level: getLevelFromXp(newXp),
       lastCheckInDate: date,

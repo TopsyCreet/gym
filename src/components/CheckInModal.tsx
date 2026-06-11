@@ -53,7 +53,7 @@ function ReadyStage({
       {/* Mascot */}
       <Mascot
         override="encouraging"
-        size={96}
+        size={160}
         speechKey="checkIn.ready"
       />
 
@@ -268,7 +268,7 @@ function SuccessStage({ onClose }: { onClose: () => void }) {
       {/* Mascot celebrating — auto-resets after 4s (spec Mascot behaviour) */}
       <Mascot
         override="celebrating"
-        size={110}
+        size={150}
         speechKey="checkIn.success"
         suppressIdle
       />
@@ -344,7 +344,7 @@ function FailedStage({
 }) {
   return (
     <div className="p-6 flex flex-col items-center text-center">
-      <Mascot override="worried" size={90} />
+      <Mascot override="worried" size={130} />
 
       <motion.div
         initial={{ scale: 0.7, opacity: 0 }}

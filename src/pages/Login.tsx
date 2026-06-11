@@ -3,6 +3,8 @@ import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
+import logoPng from '../assets/brand/logo.png';
+import mascotEncouraging from '../assets/brand/mascot_encouraging.png';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -39,17 +41,15 @@ export default function Login() {
       >
         {/* Logo mark */}
         <div className="mb-10 text-center">
-          <div className="relative mx-auto mb-6 h-16 w-16">
+          <div className="relative mx-auto mb-4 h-16 w-16">
             <div
-              className="absolute inset-0 rounded-[1.125rem] opacity-25 blur-[14px]"
+              className="absolute inset-0 rounded-[1.125rem] opacity-35 blur-[18px]"
               style={{ background: '#D4AF37' }}
             />
-            <div
-              className="relative flex h-16 w-16 items-center justify-center rounded-[1.125rem] text-xl font-black text-black"
-              style={{ background: 'linear-gradient(145deg, #E5C158, #D4AF37, #B8962E)' }}
-            >
-              ▲
-            </div>
+            <img src={logoPng} alt="PRIME" className="relative h-16 w-16 object-contain" />
+          </div>
+          <div className="flex justify-center mb-4">
+            <img src={mascotEncouraging} alt="" aria-hidden="true" style={{ width: 96 }} />
           </div>
           <h1 className="text-3xl font-black text-white">Welcome back.</h1>
           <p className="mt-2 text-sm" style={{ color: 'var(--text-muted)' }}>

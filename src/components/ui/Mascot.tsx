@@ -1,16 +1,11 @@
 /**
  * Mascot — emotional state machine over existing Zustand app state.
  *
- * The mascot is a SELECTOR: it reads auth/gym state and derives
- * which emotion to display. It never holds its own source of truth.
- *
- * GSAP owns: idle breathing loop.
+ * GSAP owns: idle animations + wave greeting.
  * Framer Motion owns: state-change mount/unmount transition.
  *
- * Placement rules from spec:
- *  - Never block content or interrupt a check-in flow in progress.
- *  - Speech bubbles are optional (pass speechKey prop).
- *  - "sad" state auto-returns to "encouraging" after 4 s.
+ * Wave greeting: plays once on mount (waveOnMount prop), then idle takes over.
+ * "Sad" state auto-returns to "encouraging" after 4 s.
  */
 
 import { useRef, useEffect, useState, useCallback } from 'react';
@@ -55,7 +50,7 @@ const ARIA_LABEL: Record<MascotState, string> = {
   sad:         'Prime mascot, disappointed — weekly commitment missed',
 };
 
-// ── State derivation (pure function — easy to test) ────────
+// ── State derivation ───────────────────────────────────────
 export function deriveMascotState({
   checkedInToday,
   weeklyDone,
@@ -76,29 +71,22 @@ export function deriveMascotState({
   if (streakJustBroken) return 'sad';
   if (weeklyGoalJustCompleted || streakMilestone) return 'celebrating';
   if (checkedInToday) return 'happy';
-
   const checkInsLeft = weeklyTarget - weeklyDone;
-  // Tight: check-ins remaining >= days remaining (must go every remaining day)
   if (checkInsLeft > 0 && checkInsLeft >= daysRemainingInWeek) return 'worried';
-
   return 'encouraging';
 }
 
 // ── Hook: derive state from Zustand ────────────────────────
 function useMascotState(override?: MascotState): MascotState {
   const user = useAuthStore((state) => state.getUser());
-
   if (override) return override;
   if (!user) return 'encouraging';
 
   const today = new Date().toISOString().slice(0, 10);
   const checkedInToday = user.lastCheckInDate === today;
-
-  // Weekly calculation
-  const dayOfWeek = new Date().getDay(); // 0=Sun
+  const dayOfWeek = new Date().getDay();
   const daysRemainingInWeek = Math.max(1, 7 - dayOfWeek);
 
-  // Count check-ins this calendar week (Mon–Sun)
   const weeklyDone = (() => {
     const now = new Date();
     const daysSinceMonday = (now.getDay() + 6) % 7;
@@ -106,8 +94,7 @@ function useMascotState(override?: MascotState): MascotState {
     for (let i = daysSinceMonday; i >= 0; i--) {
       const d = new Date(now);
       d.setDate(now.getDate() - i);
-      const key = d.toISOString().slice(0, 10);
-      if (user.attendanceHistory[key]) count++;
+      if (user.attendanceHistory[d.toISOString().slice(0, 10)]) count++;
     }
     return count;
   })();
@@ -119,23 +106,21 @@ function useMascotState(override?: MascotState): MascotState {
     weeklyDone,
     weeklyTarget,
     daysRemainingInWeek,
-    streakJustBroken: false,      // set externally via override prop
+    streakJustBroken: false,
     weeklyGoalJustCompleted: weeklyDone >= weeklyTarget && weeklyTarget > 0,
-    streakMilestone: false,        // set externally via override prop
+    streakMilestone: false,
   });
 }
 
 // ── Props ──────────────────────────────────────────────────
 interface MascotProps {
-  /** Force a specific state (for onboarding, celebrations, etc.) */
   override?: MascotState;
-  /** Size in px */
   size?: number;
-  /** Render a speech bubble with this key from mascotStrings */
   speechKey?: string | null;
   className?: string;
-  /** Suppress idle GSAP loop (e.g. when GSAP celebration is driving) */
   suppressIdle?: boolean;
+  /** Play a friendly wave greeting on mount before the idle loop starts */
+  waveOnMount?: boolean;
 }
 
 export default function Mascot({
@@ -144,13 +129,19 @@ export default function Mascot({
   speechKey,
   className = '',
   suppressIdle = false,
+  waveOnMount = false,
 }: MascotProps) {
   const mascotState = useMascotState(override);
   const [displayState, setDisplayState] = useState<MascotState>(mascotState);
+  // waveComplete gates the idle loop — starts false only when waveOnMount is true
+  const [waveComplete, setWaveComplete] = useState(!waveOnMount);
   const imgRef = useRef<HTMLImageElement>(null);
-  const idleTl = useRef<gsap.core.Tween | null>(null);
+  const idleTl = useRef<gsap.core.Tween | gsap.core.Timeline | null>(null);
 
-  // "Sad" auto-returns to "encouraging" after 4s (spec: never punish repeatedly)
+  const prefersReduced = typeof window !== 'undefined'
+    && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // "Sad" auto-returns to "encouraging" after 4s
   useEffect(() => {
     setDisplayState(mascotState);
     if (mascotState === 'sad') {
@@ -159,33 +150,145 @@ export default function Mascot({
     }
   }, [mascotState]);
 
-  // GSAP idle: subtle breathing loop
+  // ── One-shot wave greeting ─────────────────────────────────
   useGSAP(() => {
-    if (suppressIdle || !imgRef.current) return;
+    if (waveComplete || !imgRef.current) return;
+    const el = imgRef.current;
 
-    idleTl.current = gsap.to(imgRef.current, {
-      scaleY: 1.025,
-      scaleX: 0.985,
-      transformOrigin: 'bottom center',
-      duration: 2.2,
-      ease: 'sine.inOut',
-      yoyo: true,
-      repeat: -1,
+    gsap.set(el, { transformOrigin: 'bottom center' });
+
+    if (prefersReduced) {
+      setWaveComplete(true);
+      return;
+    }
+
+    const tl = gsap.timeline({
+      delay: 0.5,
+      onComplete: () => {
+        gsap.set(el, { clearProps: 'all' });
+        setWaveComplete(true);
+      },
     });
 
-    return () => { idleTl.current?.kill(); };
-  }, { dependencies: [suppressIdle, displayState] });
+    // Friendly greeting rock: lean back → bow forward → wave right → left → settle
+    tl.to(el, { rotation: -8, y: -4, duration: 0.25, ease: 'power2.out' })
+      .to(el, { rotation: 18, y: -10, scaleX: 0.95, duration: 0.28, ease: 'power2.out' })
+      .to(el, { rotation: -12, y: -6, duration: 0.22, ease: 'sine.inOut' })
+      .to(el, { rotation: 14, y: -10, duration: 0.22, ease: 'sine.inOut' })
+      .to(el, { rotation: -6, y: -3, duration: 0.18, ease: 'sine.inOut' })
+      .to(el, { rotation: 0, y: 0, scaleX: 1, duration: 0.4, ease: 'back.out(1.6)' });
 
-  // Respect prefers-reduced-motion
-  const prefersReduced = typeof window !== 'undefined'
-    && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    return () => tl.kill();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, { dependencies: [] }); // run once on mount
+
+  // ── State-specific idle animation ─────────────────────────
+  useGSAP(() => {
+    if (!waveComplete || suppressIdle || !imgRef.current) return;
+    const el = imgRef.current;
+
+    idleTl.current?.kill();
+    gsap.set(el, { clearProps: 'all' });
+    // Set transform origin once — avoids jitter from per-tween overrides
+    gsap.set(el, { transformOrigin: 'bottom center' });
+
+    if (prefersReduced) {
+      idleTl.current = gsap.to(el, {
+        scale: 1.015,
+        duration: 3,
+        ease: 'sine.inOut',
+        yoyo: true,
+        repeat: -1,
+      });
+      return;
+    }
+
+    switch (displayState) {
+
+      // Squash → launch → bounce land → rotation rock
+      case 'celebrating': {
+        const tl = gsap.timeline({ repeat: -1, repeatDelay: 0.6 });
+        tl.to(el, { scaleX: 1.14, scaleY: 0.86, duration: 0.14, ease: 'power2.in' })
+          .to(el, { scaleX: 0.86, scaleY: 1.2, y: -26, duration: 0.28, ease: 'power3.out' })
+          .to(el, { scaleX: 1.08, scaleY: 0.92, y: 0, duration: 0.2, ease: 'power2.in' })
+          .to(el, { scaleX: 1, scaleY: 1, duration: 0.22, ease: 'elastic.out(1, 0.5)' })
+          .to(el, { rotation: 13, duration: 0.14, ease: 'power2.in' }, '+=0.05')
+          .to(el, { rotation: -11, duration: 0.2, ease: 'sine.inOut' })
+          .to(el, { rotation: 0, duration: 0.18, ease: 'power2.out' });
+        idleTl.current = tl;
+        break;
+      }
+
+      // Gentle lift and soft land
+      case 'happy': {
+        const tl = gsap.timeline({ repeat: -1, repeatDelay: 0.5 });
+        tl.to(el, { y: -11, scaleY: 1.05, scaleX: 0.96, duration: 0.55, ease: 'power2.out' })
+          .to(el, { y: 0, scaleY: 1, scaleX: 1, duration: 0.5, ease: 'elastic.out(1, 0.6)' });
+        idleTl.current = tl;
+        break;
+      }
+
+      // Peppy hop with natural arc
+      case 'encouraging': {
+        const tl = gsap.timeline({ repeat: -1, repeatDelay: 1.0 });
+        tl.to(el, { scaleX: 1.04, scaleY: 0.96, duration: 0.12, ease: 'power2.in' })
+          .to(el, { y: -10, scaleX: 0.95, scaleY: 1.07, duration: 0.35, ease: 'power3.out' })
+          .to(el, { y: 0, scaleX: 1, scaleY: 1, duration: 0.38, ease: 'elastic.out(1, 0.55)' });
+        idleTl.current = tl;
+        break;
+      }
+
+      // Anxious tremble — decelerating shakes feel organic
+      case 'worried': {
+        const tl = gsap.timeline({ repeat: -1, repeatDelay: 1.6 });
+        tl.to(el, { x: -6, duration: 0.08, ease: 'power2.inOut' })
+          .to(el, { x: 6, duration: 0.08, ease: 'power2.inOut' })
+          .to(el, { x: -4, duration: 0.07, ease: 'power1.inOut' })
+          .to(el, { x: 4, duration: 0.07, ease: 'power1.inOut' })
+          .to(el, { x: -2, duration: 0.06, ease: 'sine.inOut' })
+          .to(el, { x: 0, duration: 0.1, ease: 'sine.out' });
+        idleTl.current = tl;
+        break;
+      }
+
+      // Heavy sagging sigh — slow and weighted
+      case 'sad': {
+        idleTl.current = gsap.to(el, {
+          scaleY: 0.92,
+          scaleX: 1.06,
+          y: 6,
+          duration: 2.6,
+          ease: 'sine.inOut',
+          yoyo: true,
+          repeat: -1,
+        });
+        break;
+      }
+
+      // Calm minimal breathe (neutral / fallback)
+      default: {
+        idleTl.current = gsap.to(el, {
+          scaleY: 1.022,
+          scaleX: 0.984,
+          duration: 2.4,
+          ease: 'sine.inOut',
+          yoyo: true,
+          repeat: -1,
+        });
+      }
+    }
+
+    return () => {
+      idleTl.current?.kill();
+      gsap.set(el, { clearProps: 'all' });
+    };
+  }, { dependencies: [waveComplete, suppressIdle, displayState, prefersReduced] });
 
   const src = ASSET[displayState];
   const alt = ARIA_LABEL[displayState];
 
   const getSpeech = useCallback((): string | null => {
     if (!speechKey) return null;
-    // Allow dot-notation keys like "morning.pending"
     const keys = speechKey.split('.');
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let obj: any = mascotStrings;
@@ -200,7 +303,7 @@ export default function Mascot({
 
   return (
     <div className={`relative inline-flex flex-col items-center ${className}`}>
-      {/* Speech bubble — appears above mascot */}
+      {/* Speech bubble */}
       <AnimatePresence>
         {speechText && (
           <motion.div
@@ -223,7 +326,6 @@ export default function Mascot({
             aria-live="polite"
           >
             {speechText}
-            {/* Bubble tail */}
             <span
               aria-hidden="true"
               className="absolute left-1/2 -translate-x-1/2 -bottom-[7px]"

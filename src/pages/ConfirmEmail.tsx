@@ -1,6 +1,7 @@
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
+import mascotHappy from '../assets/brand/mascot_happy.png';
 
 export default function ConfirmEmail() {
   const navigate = useNavigate();
@@ -16,11 +17,8 @@ export default function ConfirmEmail() {
         className="w-full max-w-md"
       >
         <div className="card-elevated p-8 text-center">
-          <div
-            className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-2xl text-xl font-black text-surface"
-            style={{ background: 'linear-gradient(135deg, #D4AF37, #E5C158)' }}
-          >
-            ▲
+          <div className="flex justify-center mb-6">
+            <img src={mascotHappy} alt="" aria-hidden="true" style={{ width: 100 }} />
           </div>
 
           <p className="label tracking-[0.25em]">One More Step</p>

@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { challenges } from '../data/challenges';
+import mascotCelebrating from '../assets/brand/mascot_celebrating.png';
 
 const categoryConfig: Record<string, { icon: React.ElementType; color: string }> = {
   strength:    { icon: Dumbbell,       color: '#D4A017' },
@@ -71,30 +72,32 @@ export default function TrialSheet({ trialId, onClose }: TrialSheetProps) {
     <AnimatePresence>
       {trialId !== null && challenge && (
         <>
-          {/* Overlay — no backdrop blur (spec: solid surfaces only) */}
+          {/* Overlay — sits above BottomNav (z-50) so it covers it */}
           <motion.div
             key="trial-overlay"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-40"
+            className="fixed inset-0 z-[60]"
             style={{ background: 'rgba(0,0,0,0.88)' }}
             onClick={onClose}
             aria-hidden="true"
           />
 
-          {/* Panel — card-modal solid surface */}
+          {/* Panel — above overlay and above BottomNav */}
           <motion.div
             key="trial-panel"
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', stiffness: 340, damping: 30 }}
-            className="fixed bottom-0 left-0 right-0 z-50 mx-auto max-w-lg card-modal"
+            className="fixed bottom-0 left-0 right-0 z-[70] mx-auto max-w-lg card-modal"
             style={{
               borderRadius: '1.5rem 1.5rem 0 0',
-              paddingBottom: 'calc(1.5rem + env(safe-area-inset-bottom))',
+              maxHeight: '88vh',
+              overflowY: 'auto',
+              paddingBottom: 'calc(2rem + env(safe-area-inset-bottom))',
             }}
             role="dialog"
             aria-modal="true"
@@ -135,7 +138,7 @@ export default function TrialSheet({ trialId, onClose }: TrialSheetProps) {
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.14 }}
-                  className="px-6 pt-5 pb-2"
+                  className="px-6 pt-5 pb-4"
                 >
                   {/* Category icon */}
                   <div
@@ -219,26 +222,23 @@ export default function TrialSheet({ trialId, onClose }: TrialSheetProps) {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ duration: 0.18 }}
-                  className="flex flex-col items-center px-6 py-12 text-center"
+                  className="flex flex-col items-center px-6 pt-8 pb-6 text-center"
                 >
-                  <motion.div
-                    initial={{ scale: 0, rotate: -15 }}
-                    animate={{ scale: 1, rotate: 0 }}
-                    transition={{ type: 'spring', stiffness: 420, damping: 18, delay: 0.06 }}
-                    className="flex h-16 w-16 items-center justify-center rounded-full"
-                    style={{
-                      background: 'rgba(39,174,96,0.1)',
-                      border: '1px solid rgba(39,174,96,0.25)',
-                    }}
-                  >
-                    <CheckCircle2 size={30} style={{ color: 'var(--success)' }} aria-hidden="true" />
-                  </motion.div>
+                  <motion.img
+                    src={mascotCelebrating}
+                    alt=""
+                    aria-hidden="true"
+                    initial={{ scale: 0.6, opacity: 0, y: 10 }}
+                    animate={{ scale: 1, opacity: 1, y: 0 }}
+                    transition={{ type: 'spring', stiffness: 360, damping: 22, delay: 0.05 }}
+                    style={{ width: 130 }}
+                  />
 
                   <motion.h2
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.2, duration: 0.28 }}
-                    className="mt-5 text-xl font-black text-white"
+                    className="mt-5 text-2xl font-black text-white"
                   >
                     Trial Cleared
                   </motion.h2>
@@ -246,8 +246,8 @@ export default function TrialSheet({ trialId, onClose }: TrialSheetProps) {
                   <motion.p
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    transition={{ delay: 0.34 }}
-                    className="mt-1.5 text-sm italic"
+                    transition={{ delay: 0.32 }}
+                    className="mt-2 text-sm italic"
                     style={{ color: 'var(--text-secondary)' }}
                   >
                     The record grows.

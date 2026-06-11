@@ -12,8 +12,10 @@ import Dashboard from './pages/Dashboard';
 import Progress from './pages/Progress';
 import Leaderboard from './pages/Leaderboard';
 import Profile from './pages/Profile';
+import Settings from './pages/Settings';
 import Admin from './pages/Admin';
 import GymPortal from './pages/GymPortal';
+import ErrorBoundary from './components/ErrorBoundary';
 
 function App() {
   const location = useLocation();
@@ -43,6 +45,7 @@ function App() {
   const showBottomNav = !!user;
 
   return (
+    <ErrorBoundary>
     <div className="min-h-screen bg-surface text-white">
       <Navbar />
       {/* No AnimatePresence wrapper — avoids the "hold old page during exit" problem
@@ -65,6 +68,7 @@ function App() {
           <Route path="/progress" element={user ? <Progress /> : <Navigate to="/login" />} />
           <Route path="/leaderboard" element={user ? <Leaderboard /> : <Navigate to="/login" />} />
           <Route path="/profile" element={user ? <Profile /> : <Navigate to="/login" />} />
+          <Route path="/settings" element={user ? <Settings /> : <Navigate to="/login" />} />
           <Route path="/admin" element={<Admin />} />
           <Route path="/gym-portal" element={<GymPortal />} />
           <Route path="*" element={<Navigate to="/" />} />
@@ -72,6 +76,7 @@ function App() {
       </motion.main>
       {showBottomNav && <BottomNav />}
     </div>
+    </ErrorBoundary>
   );
 }
 

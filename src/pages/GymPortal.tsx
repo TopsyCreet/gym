@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { useAuthStore } from '../store/authStore';
 import { gyms, findGymByCode } from '../data/gyms';
 import { TrendingUp, Users, CheckCircle, Target, ArrowUpRight } from 'lucide-react';
+import mascotNeutral from '../assets/brand/mascot_neutral.png';
 
 export default function GymPortal() {
   const users = useAuthStore((state) => state.users);
@@ -46,11 +47,8 @@ export default function GymPortal() {
           className="w-full max-w-sm"
         >
           <div className="card p-6 text-center">
-            <div
-              className="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-xl text-base font-black text-surface"
-              style={{ background: 'linear-gradient(135deg, #D4AF37, #E5C158)' }}
-            >
-              ◆
+            <div className="flex justify-center mb-5">
+              <img src={mascotNeutral} alt="" aria-hidden="true" style={{ width: 80 }} />
             </div>
             <p className="label tracking-[0.25em]">Gym Portal</p>
             <h1 className="mt-2 text-2xl font-black text-white">Enter your gym code</h1>

@@ -1,6 +1,5 @@
 import { create } from 'zustand';
 import { useAuthStore } from './authStore';
-import { challenges } from '../data/challenges';
 import { getDistanceMeters } from '../utils/geofence';
 
 export type GymState = {
@@ -14,7 +13,6 @@ export type GymState = {
   verifyGymLocation: () => Promise<boolean>;
   checkInToday: () => Promise<void>;
   toggleAtGymOverride: () => void;
-  assignDailyChallenges: () => void;
 };
 
 const GYM_COORDS = { latitude: 6.5244, longitude: 3.3792 };
@@ -22,7 +20,7 @@ const GYM_COORDS = { latitude: 6.5244, longitude: 3.3792 };
 export const useGymStore = create<GymState>((set, get) => ({
   verifying: false,
   distance: null,
-  atGymOverride: true,
+  atGymOverride: false,
   lastCheckInMessage: null,
   checkInModalOpen: false,
   openCheckInModal: () => set({ checkInModalOpen: true, lastCheckInMessage: null }),
@@ -64,16 +62,6 @@ export const useGymStore = create<GymState>((set, get) => ({
       return;
     }
     useAuthStore.getState().addCheckIn(today);
-    get().assignDailyChallenges();
     set({ lastCheckInMessage: `Checked in at ${today}. STREAK: ${user.streak + 1} DAYS 🔥` });
   },
-  assignDailyChallenges: () => {
-    const auth = useAuthStore.getState();
-    const user = auth.getUser();
-    if (!user) return;
-    const today = new Date().toISOString().slice(0, 10);
-    const selected = [...challenges].sort(() => Math.random() - 0.5).slice(0, 3);
-    const dailyChallenges = selected.map((challenge) => ({ id: challenge.id, completed: false }));
-    auth.updateUser({ ...user, dailyChallenges, lastCheckInDate: today });
-  }
 }));

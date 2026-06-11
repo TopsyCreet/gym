@@ -3,6 +3,7 @@ import { useAuthStore } from '../store/authStore';
 import { motion } from 'framer-motion';
 import { LogOut } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
+import logoPng from '../assets/brand/logo.png';
 
 const links = [
   { href: '/dashboard',   label: 'Home' },
@@ -41,15 +42,10 @@ export default function Navbar() {
           >
             <div className="relative flex h-9 w-9 shrink-0 items-center justify-center">
               <div
-                className="absolute inset-0 rounded-[10px] opacity-20 blur-[10px] transition-opacity group-hover:opacity-35"
+                className="absolute inset-0 rounded-[10px] opacity-30 blur-[12px] transition-opacity group-hover:opacity-50"
                 style={{ background: '#D4AF37' }}
               />
-              <div
-                className="relative flex h-9 w-9 items-center justify-center rounded-[10px] text-[10px] font-black text-black"
-                style={{ background: 'linear-gradient(145deg, #E5C158, #D4AF37, #B8962E)' }}
-              >
-                ▲
-              </div>
+              <img src={logoPng} alt="PRIME" className="relative h-9 w-9 object-contain" />
             </div>
             <div className="hidden sm:block">
               <p className="label leading-none tracking-[0.3em]">Operating System</p>

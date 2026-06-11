@@ -5,6 +5,7 @@ import { useGSAP } from '@gsap/react';
 import { CheckCircle, Shield, AlertTriangle, X, ArrowRight } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { useGymStore } from '../store/gymStore';
+import emptyStatePng from '../assets/brand/empty_state.png';
 import Ring, { WeeklyArc } from '../components/ui/Ring';
 import Mascot from '../components/ui/Mascot';
 import type { MascotState } from '../components/ui/Mascot';
@@ -28,6 +29,36 @@ const RANK_THRESHOLDS = [
   { title: 'Prime',    minCheckIns: 100 },
   { title: 'Monarch',  minCheckIns: 200 },
 ];
+
+// ── Daily insights — rotate every day (date % 3) ─────────────────────────
+const INSIGHTS = [
+  {
+    category: 'Consistency',
+    title:    'The Compound Effect',
+    body:     'Session 1 and session 50 feel different. Early sessions build the habit; later ones reveal the identity. Show up for both.',
+    color:    '#D4A017',
+  },
+  {
+    category: 'Identity',
+    title:    'You Are What You Repeat',
+    body:     'Every check-in is a vote for who you\'re becoming. The person with 100 sessions did not decide once — they decided 100 times.',
+    color:    '#3D7FD4',
+  },
+  {
+    category: 'Recovery',
+    title:    'Rest Is Scheduled',
+    body:     'Skipping a non-scheduled day is not a miss — it\'s the plan. Recovery is part of the record. Honour it like any other session.',
+    color:    '#27AE60',
+  },
+] as const;
+
+// Pick today's insight via day-of-year so it changes daily, same for all users
+function getDailyInsight() {
+  const now  = new Date();
+  const start = new Date(now.getFullYear(), 0, 0);
+  const dayOfYear = Math.floor((now.getTime() - start.getTime()) / 86_400_000);
+  return INSIGHTS[dayOfYear % INSIGHTS.length];
+}
 
 type WeeklyState = 'secured' | 'tight' | 'done' | 'pending';
 
@@ -224,6 +255,8 @@ export default function Dashboard() {
   // ── Guard ─────────────────────────────────────────────────────────────
   if (!user) return null;
 
+  const dailyInsight = getDailyInsight();
+
   return (
     <div ref={containerRef} className="mx-auto max-w-2xl space-y-4 px-4 py-5 sm:px-6 pb-24">
 
@@ -309,14 +342,15 @@ export default function Dashboard() {
           </div>
 
           {/* Right column: mascot + streak */}
-          <div className="flex-1 flex flex-col items-center sm:items-start gap-4 w-full">
+          <div className="flex-1 flex flex-col items-center gap-4 w-full">
             <Mascot
               override={mascotOverride}
-              size={80}
+              size={180}
               speechKey={speechKey}
+              waveOnMount
             />
 
-            <div className="text-center sm:text-left">
+            <div className="text-center">
               <p className="label">Days Unbroken</p>
               <p
                 className="mt-0.5 tabular-nums leading-none"
@@ -333,7 +367,7 @@ export default function Dashboard() {
 
               {/* Streak shields */}
               {user.freezeTokens > 0 && (
-                <div className="mt-2 flex items-center justify-center sm:justify-start gap-1.5" role="list" aria-label="Streak shields banked">
+                <div className="mt-2 flex items-center justify-center gap-1.5" role="list" aria-label="Streak shields banked">
                   {Array.from({ length: Math.min(user.freezeTokens, 2) }).map((_, i) => (
                     <span
                       key={i}
@@ -502,9 +536,10 @@ export default function Dashboard() {
 
         {!checkedInToday ? (
           <div
-            className="rounded-2xl py-8 text-center"
+            className="flex flex-col items-center rounded-2xl py-8 text-center"
             style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)' }}
           >
+            <img src={emptyStatePng} alt="" className="mb-4 h-20 w-20 object-contain opacity-60" aria-hidden="true" />
             <p className="text-sm font-semibold text-white">Trials unlock after check-in.</p>
             <p className="mt-1 text-xs" style={{ color: 'var(--text-faint)' }}>
               Prove your presence first.
@@ -525,6 +560,37 @@ export default function Dashboard() {
           </div>
         )}
       </div>
+
+      {/* ── Daily Insight ─────────────────────────────────────────────── */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+        className="card relative overflow-hidden px-5 py-4"
+        data-card
+        style={{ borderLeft: `3px solid ${dailyInsight.color}` }}
+      >
+        {/* Ambient color wash — very subtle */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background: `radial-gradient(ellipse 70% 60% at 0% 0%, ${dailyInsight.color}0d 0%, transparent 100%)`,
+          }}
+        />
+        <div className="relative">
+          <p className="label tracking-[0.22em]" style={{ color: dailyInsight.color }}>
+            {dailyInsight.category}
+          </p>
+          <p className="mt-2 text-lg font-black leading-snug text-white">
+            {dailyInsight.title}
+          </p>
+          <div className="mt-3 h-px" style={{ background: `${dailyInsight.color}22` }} />
+          <p className="mt-3 text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+            {dailyInsight.body}
+          </p>
+        </div>
+      </motion.div>
 
       {/* ── Gym Community ─────────────────────────────────────────────── */}
       <GymFeedCard />

@@ -8,6 +8,7 @@ import { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Heart, TrendingUp, Calendar } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
+import mascotCelebrating from '../assets/brand/mascot_celebrating.png';
 
 type MockMember = {
   id: string;
@@ -154,21 +155,24 @@ export default function Leaderboard() {
           01
         </div>
 
-        <div className="mb-5 flex items-center gap-3">
-          <span className="badge badge-gold">Your Gym</span>
-          {import.meta.env.DEV && (
-            <span
-              className="rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider"
-              style={{
-                background: 'rgba(243,156,18,0.1)',
-                border: '1px solid rgba(243,156,18,0.2)',
-                color: 'var(--warning)',
-              }}
-              title="Backend gap: showing mock data"
-            >
-              Mock
-            </span>
-          )}
+        <div className="mb-5 flex items-start justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <span className="badge badge-gold">Your Gym</span>
+            {import.meta.env.DEV && (
+              <span
+                className="rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider"
+                style={{
+                  background: 'rgba(243,156,18,0.1)',
+                  border: '1px solid rgba(243,156,18,0.2)',
+                  color: 'var(--warning)',
+                }}
+                title="Backend gap: showing mock data"
+              >
+                Mock
+              </span>
+            )}
+          </div>
+          <img src={mascotCelebrating} alt="" aria-hidden="true" style={{ width: 100 }} />
         </div>
 
         <h1 className="text-display text-white">Gym Ranks</h1>
