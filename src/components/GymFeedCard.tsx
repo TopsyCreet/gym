@@ -4,6 +4,26 @@ import { Users, Heart } from 'lucide-react';
 import { supabase, supabaseConfigured } from '../lib/supabaseClient';
 import { useAuthStore } from '../store/authStore';
 
+// Per-user localStorage helpers so kudos state survives refresh and logout
+function kudosStorageKey(userId: string) { return `prime_kudos_${userId}`; }
+
+function hasGivenKudos(userId: string, feedId: string | number): boolean {
+  try {
+    const raw = localStorage.getItem(kudosStorageKey(userId));
+    return raw ? (JSON.parse(raw) as string[]).includes(String(feedId)) : false;
+  } catch { return false; }
+}
+
+function persistKudos(userId: string, feedId: string | number) {
+  try {
+    const raw = localStorage.getItem(kudosStorageKey(userId));
+    const ids: string[] = raw ? JSON.parse(raw) : [];
+    if (!ids.includes(String(feedId))) {
+      localStorage.setItem(kudosStorageKey(userId), JSON.stringify([...ids, String(feedId)]));
+    }
+  } catch {}
+}
+
 type FeedItem = {
   id: string | number;
   initials: string;
@@ -43,8 +63,11 @@ function relativeTime(iso: string): string {
 }
 
 function FeedItemRow({ item, onKudos }: { item: FeedItem; onKudos?: () => void }) {
+  const user  = useAuthStore((s) => s.getUser());
   const [kudos, setKudos] = useState(item.kudos);
-  const [tapped, setTapped] = useState(false);
+  const [tapped, setTapped] = useState(() =>
+    user ? hasGivenKudos(user.id, item.id) : false
+  );
   const color = getInitialsColor(item.initials);
 
   return (
@@ -74,7 +97,14 @@ function FeedItemRow({ item, onKudos }: { item: FeedItem; onKudos?: () => void }
 
       <motion.button
         type="button"
-        onClick={() => { if (!tapped) { setTapped(true); setKudos((k) => k + 1); onKudos?.(); } }}
+        onClick={() => {
+          if (!tapped) {
+            setTapped(true);
+            setKudos((k) => k + 1);
+            if (user) persistKudos(user.id, item.id);
+            onKudos?.();
+          }
+        }}
         aria-label={tapped ? `${kudos} respects given` : `Give respect (${kudos})`}
         aria-pressed={tapped}
         whileTap={{ scale: 0.88 }}
