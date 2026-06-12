@@ -685,5 +685,25 @@ export const useAuthStore = create<AppState>((set, get) => ({
       achievements: Array.from(new Set([...user.achievements, 'first-checkin']))
     };
     get().updateUser(updated);
+
+    // Emit a gym feed event so gymmates see the check-in in real time
+    if (supabaseConfigured && supabase && !get().demoMode && updated.gymId) {
+      const initials = updated.name
+        .split(' ')
+        .map((n: string) => n[0])
+        .join('')
+        .slice(0, 2)
+        .toUpperCase();
+      supabase.from('gym_feed').insert({
+        gym_id:        updated.gymId,
+        user_id:       updated.id,
+        user_name:     updated.name,
+        user_initials: initials,
+        event_type:    'check_in',
+        event_text:    'Checked in',
+      }).then(({ error }) => {
+        if (error) console.warn('[gym_feed]', error.message);
+      });
+    }
   }
 }));

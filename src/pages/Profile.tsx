@@ -256,7 +256,7 @@ export default function Profile() {
                       curr.includes(day) ? curr.filter((d) => d !== day) : [...curr, day]
                     )
                   }
-                  className="rounded-xl py-2.5 text-[10px] font-bold transition-all duration-150"
+                  className="rounded-xl py-3.5 text-[10px] font-bold transition-all duration-150"
                   style={
                     active
                       ? { background: 'rgba(212,160,23,0.1)', color: 'var(--gold)', border: '1px solid rgba(212,160,23,0.28)' }

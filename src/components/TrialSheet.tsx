@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X, CheckCircle2,
@@ -68,11 +69,11 @@ export default function TrialSheet({ trialId, onClose }: TrialSheetProps) {
   const cfg  = challenge ? getCategory(challenge.category) : null;
   const Icon = cfg?.icon ?? Dumbbell;
 
-  return (
+  return createPortal(
     <AnimatePresence>
       {trialId !== null && challenge && (
         <>
-          {/* Overlay — sits above BottomNav (z-50) so it covers it */}
+          {/* Rendered via portal into document.body — escapes motion.main stacking context */}
           <motion.div
             key="trial-overlay"
             initial={{ opacity: 0 }}
@@ -259,6 +260,7 @@ export default function TrialSheet({ trialId, onClose }: TrialSheetProps) {
           </motion.div>
         </>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 }

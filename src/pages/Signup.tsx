@@ -160,7 +160,7 @@ export default function Signup() {
           <img src={logoPng} alt="PRIME" className="relative h-12 w-12 object-contain" />
         </div>
         <h1 className="text-2xl font-black text-white">Begin your record.</h1>
-        <p className="mt-1.5 text-sm" style={{ color: 'var(--text-faint)' }}>
+        <p className="mt-1.5 text-sm" style={{ color: 'var(--text-secondary)' }}>
           Prime rewards one thing: consistency.
         </p>
       </div>
@@ -392,7 +392,7 @@ export default function Signup() {
                                 curr.includes(day) ? curr.filter((d) => d !== day) : [...curr, day]
                               )
                             }
-                            className="rounded-xl py-2.5 text-[11px] font-bold transition-all duration-150"
+                            className="rounded-xl py-3.5 text-[11px] font-bold transition-all duration-150"
                             style={
                               on
                                 ? { background: 'rgba(212,160,23,0.12)', color: 'var(--gold)', border: '1px solid rgba(212,160,23,0.3)' }
@@ -422,7 +422,7 @@ export default function Signup() {
                     {[
                       { label: 'Name',       value: name },
                       { label: 'Email',      value: email },
-                      { label: 'Gym',        value: gyms.find((g) => g.id === gymId)?.name ?? 'None' },
+                      { label: 'Gym',        value: gymCode.trim() ? (findGymByCode(gymCode)?.name ?? gymCode) : 'None' },
                       {
                         label: 'Commitment',
                         value: `${currentTier.label} · ${schedule.join(', ')}`,
@@ -478,10 +478,12 @@ export default function Signup() {
                 <button
                   type="button"
                   onClick={step < 3 ? handleNext : handleSignup}
+                  disabled={step === 1 ? !canStep1 : step === 3 ? submitting : false}
                   className="btn-primary gap-2"
+                  style={{ opacity: (step === 1 && !canStep1) || (step === 3 && submitting) ? 0.45 : 1 }}
                 >
-                  {step < 3 ? 'Continue' : 'Begin Your Record'}
-                  <ArrowRight size={14} />
+                  {step === 3 && submitting ? 'Creating account…' : step < 3 ? 'Continue' : 'Begin Your Record'}
+                  {!(step === 3 && submitting) && <ArrowRight size={14} />}
                 </button>
               </div>
             </motion.div>

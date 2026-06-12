@@ -4,11 +4,12 @@
  * so the target gym's admin can approve or reject. Showing request UI until that exists.
  */
 
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, Camera, Save, LogOut, Check, Clock, MapPin } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
+import { supabase, supabaseConfigured } from '../lib/supabaseClient';
 import { uploadAvatar } from '../lib/uploadAvatar';
 import { gyms } from '../data/gyms';
 import mascotNeutral from '../assets/brand/mascot_neutral.png';
@@ -26,7 +27,24 @@ export default function Settings() {
   const [uploading, setUploading]         = useState(false);
   const [saved, setSaved]                 = useState(false);
   const [pendingGymRequest, setPendingGymRequest] = useState<string | null>(null);
-  const fileRef = useRef<HTMLInputElement>(null);
+  const [transferring, setTransferring]           = useState(false);
+  const fileRef  = useRef<HTMLInputElement>(null);
+  const demoMode = useAuthStore((s) => s.demoMode);
+
+  // Restore any pending transfer request from Supabase on mount
+  useEffect(() => {
+    if (!supabaseConfigured || !supabase || !user?.id || demoMode) return;
+    supabase
+      .from('gym_transfer_requests')
+      .select('to_gym_id')
+      .eq('user_id', user.id)
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .then(({ data }) => {
+        if (data?.[0]) setPendingGymRequest(data[0].to_gym_id as string);
+      });
+  }, [user?.id, demoMode]);
 
   if (!user) return null;
 
@@ -75,18 +93,21 @@ export default function Settings() {
     setTimeout(() => setSaved(false), 2200);
   };
 
-  // ── Gym transfer request (mock until backend table exists) ────────────────
-  const handleGymRequest = (targetGymId: string) => {
-    if (targetGymId === user.gymId || pendingGymRequest === targetGymId) return;
-    setPendingGymRequest(targetGymId);
-    if (import.meta.env.DEV) {
-      // eslint-disable-next-line no-console
-      console.warn(
-        '[PRIME · backend-gap] Gym transfer request submitted (mock).\n' +
-        'To enable: create a `gym_transfer_requests` table in Supabase.\n' +
-        'Schema: id, user_id, from_gym_id, to_gym_id, status (pending/approved/rejected), created_at.'
-      );
+  // ── Gym transfer request ──────────────────────────────────────────────────
+  const handleGymRequest = async (targetGymId: string) => {
+    if (targetGymId === user.gymId || pendingGymRequest === targetGymId || transferring) return;
+    setTransferring(true);
+    if (supabaseConfigured && supabase && !demoMode) {
+      const { error } = await supabase.from('gym_transfer_requests').insert({
+        user_id:     user.id,
+        from_gym_id: user.gymId,
+        to_gym_id:   targetGymId,
+        status:      'pending',
+      });
+      if (error) console.warn('[gym_transfer_requests]', error.message);
     }
+    setPendingGymRequest(targetGymId);
+    setTransferring(false);
   };
 
   // ── Sign out ──────────────────────────────────────────────────────────────
@@ -400,11 +421,6 @@ export default function Settings() {
           </motion.p>
         )}
 
-        {import.meta.env.DEV && (
-          <p className="text-[10px]" style={{ color: 'var(--text-ghost)' }}>
-            Live transfers require a <code>gym_transfer_requests</code> table in Supabase.
-          </p>
-        )}
       </motion.div>
 
       {/* ── Sign out */}

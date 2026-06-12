@@ -4,10 +4,11 @@
  * Showing mock data until that view exists.
  */
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Heart, TrendingUp, Calendar } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
+import { supabase, supabaseConfigured } from '../lib/supabaseClient';
 import mascotCelebrating from '../assets/brand/mascot_celebrating.png';
 
 type MockMember = {
@@ -98,8 +99,33 @@ function RespectButton({ initial }: { initial: number }) {
 }
 
 export default function Leaderboard() {
-  const user = useAuthStore((state) => state.getUser());
+  const user     = useAuthStore((state) => state.getUser());
+  const demoMode = useAuthStore((state) => state.demoMode);
   const [tab, setTab] = useState<Tab>('sessions');
+  const [liveMembers, setLiveMembers] = useState<(MockMember & { isMe: boolean })[] | null>(null);
+
+  useEffect(() => {
+    if (!supabaseConfigured || !supabase || demoMode || !user?.gymId) return;
+    supabase
+      .from('profiles')
+      .select('id, name, rank_title, streak, check_ins')
+      .eq('gym_id', user.gymId)
+      .then(({ data, error }) => {
+        if (error || !data?.length) return;
+        setLiveMembers(
+          data.map((p) => ({
+            id: p.id,
+            name: p.name ?? '',
+            initials: (p.name ?? '').split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase(),
+            rankTitle: p.rank_title ?? 'Initiate',
+            sessionsThisMonth: p.check_ins ?? 0,
+            streak: p.streak ?? 0,
+            kudos: 0,
+            isMe: p.id === user.id,
+          }))
+        );
+      });
+  }, [user?.gymId, user?.id, demoMode]);
 
   const sessionsThisMonth = useMemo(() => {
     if (!user) return 0;
@@ -109,6 +135,16 @@ export default function Leaderboard() {
   }, [user]);
 
   const allMembers = useMemo(() => {
+    if (liveMembers) {
+      const list = liveMembers.map((m) =>
+        m.isMe
+          ? { ...m, streak: user?.streak ?? m.streak, sessionsThisMonth: sessionsThisMonth || m.sessionsThisMonth }
+          : m
+      );
+      return tab === 'sessions'
+        ? [...list].sort((a, b) => b.sessionsThisMonth - a.sessionsThisMonth)
+        : [...list].sort((a, b) => b.streak - a.streak);
+    }
     const mocks = MOCK_MEMBERS.map((m) => ({ ...m, isMe: false }));
     if (!user) {
       return tab === 'sessions'
@@ -129,7 +165,7 @@ export default function Leaderboard() {
     return tab === 'sessions'
       ? combined.sort((a, b) => b.sessionsThisMonth - a.sessionsThisMonth)
       : combined.sort((a, b) => b.streak - a.streak);
-  }, [user, tab, sessionsThisMonth]);
+  }, [liveMembers, user, tab, sessionsThisMonth]);
 
   if (!user) return null;
 

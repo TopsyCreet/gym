@@ -10,6 +10,7 @@
  */
 
 import { useState, useRef, useCallback, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGSAP } from '@gsap/react';
 import gsap from 'gsap';
@@ -427,10 +428,10 @@ export default function CheckInModal() {
     }
   }, [checkInModalOpen]);
 
-  return (
+  return createPortal(
     <AnimatePresence>
       {checkInModalOpen && (
-        // Backdrop — solid, NO blur (spec: no glassmorphism)
+        // Rendered via portal — escapes motion.main stacking context so z-[60]/z-[70] beats BottomNav z-50
         <motion.div
           key="checkin-overlay"
           initial={{ opacity: 0 }}
@@ -518,6 +519,7 @@ export default function CheckInModal() {
           </motion.div>
         </motion.div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 }

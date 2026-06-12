@@ -115,7 +115,7 @@ export default function Landing() {
         <motion.p
           {...up(0.13)}
           className="mx-auto mt-4 text-xs font-bold uppercase tracking-[0.4em]"
-          style={{ color: '#2A2A2A' }}
+          style={{ color: 'var(--text-faint)' }}
         >
           Not for everyone. For those who refuse to quit.
         </motion.p>
@@ -124,7 +124,7 @@ export default function Landing() {
         <motion.p
           {...up(0.2)}
           className="mx-auto mt-8 max-w-sm text-base leading-relaxed"
-          style={{ color: '#5A5A5A' }}
+          style={{ color: 'var(--text-secondary)' }}
         >
           Prime rewards one thing: consistency. Every visit proves commitment. Every streak earns rank. Every rank becomes identity.
         </motion.p>
@@ -201,10 +201,10 @@ export default function Landing() {
           <h2 className="mx-auto mt-5 max-w-xl text-4xl font-black leading-tight text-white sm:text-5xl">
             Greatness is built through repetition.
           </h2>
-          <p className="mx-auto mt-5 max-w-md text-base leading-relaxed" style={{ color: '#4A4A4A' }}>
+          <p className="mx-auto mt-5 max-w-md text-base leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
             Not talent. Not luck. Not a single defining moment. Greatness is the person who showed up — again — when it would have been easier to stop.
           </p>
-          <p className="mx-auto mt-4 max-w-md text-base leading-relaxed" style={{ color: '#4A4A4A' }}>
+          <p className="mx-auto mt-4 max-w-md text-base leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
             Every streak is proof. Every visit is evidence. Every rank is earned.
           </p>
           <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
@@ -223,7 +223,7 @@ export default function Landing() {
             Built for{' '}
             <span className="gradient-text">those who do the work.</span>
           </h2>
-          <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed" style={{ color: '#3A3A3A' }}>
+          <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
             Not a habit tracker. Not a workout app. An operating system for people who already know what they need to do — and need proof that they did it.
           </p>
         </div>
@@ -249,7 +249,7 @@ export default function Landing() {
                 {p.symbol}
               </div>
               <h3 className="text-sm font-black uppercase tracking-wider text-white">{p.title}</h3>
-              <p className="mt-2.5 text-sm leading-relaxed" style={{ color: '#3A3A3A' }}>{p.body}</p>
+              <p className="mt-2.5 text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{p.body}</p>
             </motion.div>
           ))}
         </div>
@@ -271,7 +271,7 @@ export default function Landing() {
               className="rounded-2xl p-6 text-center"
               style={{ background: 'rgba(255,255,255,0.018)', border: '1px solid rgba(255,255,255,0.04)' }}
             >
-              <p className="text-sm italic font-medium leading-relaxed" style={{ color: '#3A3A3A' }}>{m}</p>
+              <p className="text-sm italic font-medium leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{m}</p>
             </motion.div>
           ))}
         </div>

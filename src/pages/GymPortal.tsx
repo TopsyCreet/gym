@@ -52,7 +52,7 @@ export default function GymPortal() {
             </div>
             <p className="label tracking-[0.25em]">Gym Portal</p>
             <h1 className="mt-2 text-2xl font-black text-white">Enter your gym code</h1>
-            <p className="mt-2 text-xs" style={{ color: '#4A4A4A' }}>
+            <p className="mt-2 text-xs" style={{ color: 'var(--text-faint)' }}>
               Use the referral code assigned to your gym to view your members.
             </p>
             <input
@@ -80,7 +80,7 @@ export default function GymPortal() {
                 >
                   <div>
                     <p className="text-xs font-semibold text-white">{g.name}</p>
-                    <p className="text-[11px]" style={{ color: '#3A3A3A' }}>{g.location}</p>
+                    <p className="text-[11px]" style={{ color: 'var(--text-faint)' }}>{g.location}</p>
                   </div>
                   <span
                     className="rounded-md px-2 py-1 font-mono text-[10px] font-bold tracking-widest"
@@ -101,12 +101,12 @@ export default function GymPortal() {
     <div className="mx-auto max-w-5xl space-y-5 px-4 py-6 sm:px-6">
 
       {/* Header */}
-      <div className="card-elevated p-6">
+      <div className="card p-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="label tracking-[0.25em]">Gym Portal</p>
             <h1 className="mt-1 text-2xl font-black text-white">{gym.name}</h1>
-            <p className="mt-0.5 text-sm" style={{ color: '#4A4A4A' }}>{gym.location} · Code:{' '}
+            <p className="mt-0.5 text-sm" style={{ color: 'var(--text-secondary)' }}>{gym.location} · Code:{' '}
               <span className="font-mono font-bold" style={{ color: '#D4AF37' }}>{gym.referralCode}</span>
             </p>
           </div>
@@ -147,7 +147,7 @@ export default function GymPortal() {
         >
           <div>
             <p className="label tracking-[0.2em]">Member Directory</p>
-            <p className="mt-0.5 text-xs" style={{ color: '#3A3A3A' }}>
+            <p className="mt-0.5 text-xs" style={{ color: 'var(--text-faint)' }}>
               {members.length} member{members.length !== 1 ? 's' : ''} registered with code{' '}
               <span className="font-mono" style={{ color: '#D4AF37' }}>{gym.referralCode}</span>
             </p>
@@ -156,85 +156,89 @@ export default function GymPortal() {
 
         {members.length === 0 ? (
           <div className="py-16 text-center">
-            <p className="text-sm" style={{ color: '#3A3A3A' }}>No members yet for this gym.</p>
-            <p className="mt-1 text-xs" style={{ color: '#2A2A2A' }}>
+            <p className="text-sm" style={{ color: 'var(--text-faint)' }}>No members yet for this gym.</p>
+            <p className="mt-1 text-xs" style={{ color: 'var(--text-faint)' }}>
               Share code <span className="font-mono font-bold" style={{ color: '#D4AF37' }}>{gym.referralCode}</span> during signup.
             </p>
           </div>
         ) : (
-          <div className="divide-y" style={{ borderColor: 'rgba(255,255,255,0.03)' }}>
-            {/* Column headers */}
-            <div className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr] gap-3 px-5 py-2.5 text-[10px] font-bold uppercase tracking-widest"
-              style={{ color: '#2A2A2A' }}
-            >
-              <span>Member</span>
-              <span className="text-right">Streak</span>
-              <span className="text-right">PP</span>
-              <span className="text-right">Check-ins</span>
-              <span className="text-right">Last Active</span>
-            </div>
+          <div className="overflow-x-auto">
+            <div className="min-w-[480px]">
+              {/* Column headers */}
+              <div className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr] gap-3 px-5 py-2.5 text-[10px] font-bold uppercase tracking-widest"
+                style={{ color: 'var(--text-faint)', borderBottom: '1px solid rgba(255,255,255,0.03)' }}
+              >
+                <span>Member</span>
+                <span className="text-right">Streak</span>
+                <span className="text-right">PP</span>
+                <span className="text-right">Check-ins</span>
+                <span className="text-right">Last Active</span>
+              </div>
 
-            {[...members]
-              .sort((a, b) => b.streak - a.streak)
-              .map((member, i) => {
-                const today = new Date().toISOString().slice(0, 10);
-                const isActive = member.lastCheckInDate === today;
-                return (
-                  <motion.div
-                    key={member.id}
-                    initial={{ opacity: 0, x: -8 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.04 }}
-                    className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr] items-center gap-3 px-5 py-3.5"
-                  >
-                    {/* Avatar + name */}
-                    <div className="flex items-center gap-3 min-w-0">
-                      {member.avatar ? (
-                        <img
-                          src={member.avatar}
-                          alt={member.name}
-                          className="h-8 w-8 shrink-0 rounded-full object-cover"
-                          style={{ border: '1px solid rgba(255,255,255,0.06)' }}
-                        />
-                      ) : (
-                        <div
-                          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold text-surface"
-                          style={{ background: 'linear-gradient(135deg, #D4AF37, #E5C158)' }}
-                        >
-                          {member.name.charAt(0).toUpperCase()}
+              <div className="divide-y" style={{ borderColor: 'rgba(255,255,255,0.03)' }}>
+                {[...members]
+                  .sort((a, b) => b.streak - a.streak)
+                  .map((member, i) => {
+                    const today = new Date().toISOString().slice(0, 10);
+                    const isActive = member.lastCheckInDate === today;
+                    return (
+                      <motion.div
+                        key={member.id}
+                        initial={{ opacity: 0, x: -8 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: i * 0.04 }}
+                        className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr] items-center gap-3 px-5 py-3.5"
+                      >
+                        {/* Avatar + name */}
+                        <div className="flex items-center gap-3 min-w-0">
+                          {member.avatar ? (
+                            <img
+                              src={member.avatar}
+                              alt={member.name}
+                              className="h-8 w-8 shrink-0 rounded-full object-cover"
+                              style={{ border: '1px solid rgba(255,255,255,0.06)' }}
+                            />
+                          ) : (
+                            <div
+                              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold text-surface"
+                              style={{ background: 'linear-gradient(135deg, #D4AF37, #E5C158)' }}
+                            >
+                              {member.name.charAt(0).toUpperCase()}
+                            </div>
+                          )}
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-semibold text-white">{member.name}</p>
+                            <p className="truncate text-[11px]" style={{ color: 'var(--text-faint)' }}>{member.rankTitle}</p>
+                          </div>
                         </div>
-                      )}
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-semibold text-white">{member.name}</p>
-                        <p className="truncate text-[11px]" style={{ color: '#3A3A3A' }}>{member.rankTitle}</p>
-                      </div>
-                    </div>
 
-                    <p className="text-right text-sm font-bold" style={{ color: '#D4AF37' }}>
-                      {member.streak}d
-                    </p>
-                    <p className="text-right text-sm font-semibold text-white">
-                      {member.xp.toLocaleString()}
-                    </p>
-                    <p className="text-right text-sm" style={{ color: '#4A4A4A' }}>
-                      {member.checkIns}
-                    </p>
-                    <div className="flex items-center justify-end gap-1.5">
-                      {isActive && (
-                        <span
-                          className="h-1.5 w-1.5 rounded-full"
-                          style={{ background: '#2ECC71', boxShadow: '0 0 4px #2ECC71' }}
-                        />
-                      )}
-                      <p className="text-right text-xs" style={{ color: isActive ? '#2ECC71' : '#2A2A2A' }}>
-                        {member.lastCheckInDate
-                          ? isActive ? 'Today' : member.lastCheckInDate.slice(5)
-                          : 'Never'}
-                      </p>
-                    </div>
-                  </motion.div>
-                );
-              })}
+                        <p className="text-right text-sm font-bold" style={{ color: '#D4AF37' }}>
+                          {member.streak}d
+                        </p>
+                        <p className="text-right text-sm font-semibold text-white">
+                          {member.xp.toLocaleString()}
+                        </p>
+                        <p className="text-right text-sm" style={{ color: 'var(--text-secondary)' }}>
+                          {member.checkIns}
+                        </p>
+                        <div className="flex items-center justify-end gap-1.5">
+                          {isActive && (
+                            <span
+                              className="h-1.5 w-1.5 rounded-full"
+                              style={{ background: '#2ECC71', boxShadow: '0 0 4px #2ECC71' }}
+                            />
+                          )}
+                          <p className="text-right text-xs" style={{ color: isActive ? '#2ECC71' : 'var(--text-faint)' }}>
+                            {member.lastCheckInDate
+                              ? isActive ? 'Today' : member.lastCheckInDate.slice(5)
+                              : 'Never'}
+                          </p>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+              </div>
+            </div>
           </div>
         )}
       </div>
@@ -258,7 +262,7 @@ export default function GymPortal() {
                 >
                   <p className="label">#{i + 1}</p>
                   <p className="mt-1 text-base font-black text-white truncate">{m.name}</p>
-                  <div className="mt-2 flex items-center gap-3 text-xs" style={{ color: '#4A4A4A' }}>
+                  <div className="mt-2 flex items-center gap-3 text-xs" style={{ color: 'var(--text-faint)' }}>
                     <span>{m.xp.toLocaleString()} PP</span>
                     <span>·</span>
                     <span>{m.streak}d streak</span>

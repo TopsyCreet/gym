@@ -1,22 +1,24 @@
-/**
- * GymFeedCard — community activity preview for Dashboard.
- *
- * BACKEND GAP: live data requires a `gym_feed` Supabase table with RLS
- * scoped to the user's gym. Showing mock data until that table exists.
- * See: https://github.com/anthropics/claude-code/issues (track this separately)
- */
-
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Users, Heart } from 'lucide-react';
+import { supabase, supabaseConfigured } from '../lib/supabaseClient';
+import { useAuthStore } from '../store/authStore';
 
-const MOCK_FEED = [
-  { id: 1, initials: 'EO', name: 'Emeka O.',  action: 'Checked in',               timeAgo: '2h ago', kudos: 3 },
+type FeedItem = {
+  id: string | number;
+  initials: string;
+  name: string;
+  action: string;
+  timeAgo: string;
+  kudos: number;
+};
+
+const MOCK_FEED: FeedItem[] = [
+  { id: 1, initials: 'EO', name: 'Emeka O.',  action: 'Checked in',                timeAgo: '2h ago', kudos: 3 },
   { id: 2, initials: 'KA', name: 'Kemi A.',   action: 'Hit a 14-session milestone', timeAgo: '4h ago', kudos: 7 },
-  { id: 3, initials: 'TB', name: 'Tunde B.',  action: 'Cleared all three trials',  timeAgo: '6h ago', kudos: 2 },
+  { id: 3, initials: 'TB', name: 'Tunde B.',  action: 'Cleared all three trials',   timeAgo: '6h ago', kudos: 2 },
 ];
 
-// Stable initials colour palette keyed by first char — deterministic, not random.
 const INITIALS_COLORS: Record<string, string> = {
   A:'#CD853F', B:'#4A90D9', C:'#2ECC71', D:'#D4A017', E:'#A085E0',
   F:'#CD853F', G:'#4A90D9', H:'#2ECC71', I:'#D4A017', J:'#A085E0',
@@ -26,42 +28,38 @@ const INITIALS_COLORS: Record<string, string> = {
   Z:'#CD853F',
 };
 
-function getInitialsColor(initials: string): string {
-  return INITIALS_COLORS[initials[0]?.toUpperCase()] ?? 'var(--gold)';
+function getInitialsColor(s: string): string {
+  return INITIALS_COLORS[s[0]?.toUpperCase()] ?? 'var(--gold)';
 }
 
-// ── Feed item ─────────────────────────────────────────────────────────────
-function FeedItem({ item }: { item: typeof MOCK_FEED[0] }) {
+function relativeTime(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  return `${Math.floor(hours / 24)}d ago`;
+}
+
+function FeedItemRow({ item }: { item: FeedItem }) {
   const [kudos, setKudos] = useState(item.kudos);
   const [tapped, setTapped] = useState(false);
-  const accentColor = getInitialsColor(item.initials);
-
-  const handleKudos = () => {
-    if (tapped) return; // one Respect per session per item (UI-only)
-    setTapped(true);
-    setKudos((k) => k + 1);
-  };
+  const color = getInitialsColor(item.initials);
 
   return (
     <div
       className="flex items-center gap-3 py-3"
       style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
     >
-      {/* Avatar */}
       <div
         className="shrink-0 flex items-center justify-center rounded-full text-xs font-bold"
-        style={{
-          width: 36, height: 36,
-          background: `${accentColor}18`,
-          border: `1px solid ${accentColor}30`,
-          color: accentColor,
-        }}
+        style={{ width: 36, height: 36, background: `${color}18`, border: `1px solid ${color}30`, color }}
         aria-hidden="true"
       >
         {item.initials}
       </div>
 
-      {/* Content */}
       <div className="min-w-0 flex-1">
         <p className="text-sm font-semibold text-white truncate">
           {item.name}
@@ -74,10 +72,9 @@ function FeedItem({ item }: { item: typeof MOCK_FEED[0] }) {
         </p>
       </div>
 
-      {/* Kudos / Respect button */}
       <motion.button
         type="button"
-        onClick={handleKudos}
+        onClick={() => { if (!tapped) { setTapped(true); setKudos((k) => k + 1); } }}
         aria-label={tapped ? `${kudos} respects given` : `Give respect (${kudos})`}
         aria-pressed={tapped}
         whileTap={{ scale: 0.88 }}
@@ -86,8 +83,7 @@ function FeedItem({ item }: { item: typeof MOCK_FEED[0] }) {
         style={{
           background: tapped ? 'var(--gold-faint)' : 'rgba(255,255,255,0.04)',
           border: `1px solid ${tapped ? 'rgba(212,160,23,0.28)' : 'rgba(255,255,255,0.07)'}`,
-          minHeight: 36,
-          minWidth: 44,
+          minHeight: 36, minWidth: 44,
         }}
       >
         <AnimatePresence mode="wait">
@@ -114,35 +110,76 @@ function FeedItem({ item }: { item: typeof MOCK_FEED[0] }) {
   );
 }
 
-// ── Card ──────────────────────────────────────────────────────────────────
 export default function GymFeedCard() {
-  if (import.meta.env.DEV) {
-    // eslint-disable-next-line no-console
-    console.warn(
-      '[PRIME · backend-gap] GymFeedCard is showing mock data.\n' +
-      'To enable live data: create a `gym_feed` table in Supabase with RLS\n' +
-      'scoped to the user\'s gym_id. Schema: id, gym_id, user_id, event_type, created_at.'
-    );
-  }
+  const user     = useAuthStore((s) => s.getUser());
+  const demoMode = useAuthStore((s) => s.demoMode);
+  const [items, setItems] = useState<FeedItem[]>([]);
+  const [isLive, setIsLive] = useState(false);
+  const channelRef = useRef<any>(null);
+
+  const canUseLive = supabaseConfigured && !!supabase && !demoMode && !!user?.gymId;
+
+  useEffect(() => {
+    if (!canUseLive || !supabase || !user?.gymId) {
+      setItems(MOCK_FEED);
+      return;
+    }
+
+    supabase
+      .from('gym_feed')
+      .select('id, user_initials, user_name, event_text, kudos_count, created_at')
+      .eq('gym_id', user.gymId)
+      .order('created_at', { ascending: false })
+      .limit(5)
+      .then(({ data }) => {
+        if (data?.length) {
+          setItems(data.map((r) => ({
+            id: r.id,
+            initials: r.user_initials,
+            name: r.user_name,
+            action: r.event_text,
+            timeAgo: relativeTime(r.created_at),
+            kudos: r.kudos_count,
+          })));
+          setIsLive(true);
+        } else {
+          setItems(MOCK_FEED);
+        }
+      });
+
+    const channel = supabase
+      .channel(`gym-feed-${user.gymId}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'gym_feed', filter: `gym_id=eq.${user.gymId}` },
+        (payload) => {
+          const r = payload.new as any;
+          setItems((curr) =>
+            [{ id: r.id, initials: r.user_initials, name: r.user_name, action: r.event_text, timeAgo: 'just now', kudos: r.kudos_count ?? 0 }, ...curr].slice(0, 5)
+          );
+          setIsLive(true);
+        }
+      )
+      .subscribe();
+    channelRef.current = channel;
+
+    return () => {
+      if (channelRef.current && supabase) supabase.removeChannel(channelRef.current);
+    };
+  }, [user?.gymId, canUseLive]);
 
   return (
     <div className="card p-5" data-card>
-      {/* Header */}
       <div className="flex items-center justify-between mb-1">
         <div className="flex items-center gap-2">
           <Users size={13} style={{ color: 'var(--text-faint)' }} aria-hidden="true" />
           <p className="label">Your Gym</p>
         </div>
-
-        {import.meta.env.DEV && (
+        {!isLive && import.meta.env.DEV && (
           <span
             className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full"
-            style={{
-              background: 'rgba(243,156,18,0.1)',
-              border: '1px solid rgba(243,156,18,0.2)',
-              color: 'var(--warning)',
-            }}
-            title="Backend gap: showing mock data"
+            style={{ background: 'rgba(243,156,18,0.1)', border: '1px solid rgba(243,156,18,0.2)', color: 'var(--warning)' }}
+            title="Run supabase/migrations/001_gym_features.sql to enable live feed"
           >
             Mock
           </span>
@@ -153,19 +190,16 @@ export default function GymFeedCard() {
         Prime Performance Center
       </p>
 
-      {/* Feed items */}
       <div>
-        {MOCK_FEED.map((item) => (
-          <FeedItem key={item.id} item={item} />
+        {items.map((item) => (
+          <FeedItemRow key={item.id} item={item} />
         ))}
+        {items.length === 0 && (
+          <p className="py-6 text-center text-xs" style={{ color: 'var(--text-faint)' }}>
+            No activity yet — be the first to check in.
+          </p>
+        )}
       </div>
-
-      {/* Backend gap notice (dev only) */}
-      {import.meta.env.DEV && (
-        <p className="mt-3 text-center text-[10px]" style={{ color: 'var(--text-ghost)' }}>
-          Live feed requires <code>gym_feed</code> table in Supabase.
-        </p>
-      )}
     </div>
   );
 }
