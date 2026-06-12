@@ -106,9 +106,12 @@ export default function Leaderboard() {
 
   useEffect(() => {
     if (!supabaseConfigured || !supabase || demoMode || !user?.gymId) return;
+    const now = new Date();
+    const monthPrefix = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
     supabase
       .from('profiles')
-      .select('id, name, rank_title, streak, check_ins')
+      .select('id, name, rank_title, streak, check_ins, attendance_history')
       .eq('gym_id', user.gymId)
       .then(({ data, error }) => {
         if (error) {
@@ -119,17 +122,29 @@ export default function Leaderboard() {
           console.warn('[Leaderboard] no profiles returned for gym_id:', user.gymId);
           return;
         }
+        // Deduplicate by id (can happen if a blank profile row was created on a failed login)
+        const seen = new Set<string>();
+        const unique = data.filter((p: any) => {
+          if (seen.has(p.id)) return false;
+          seen.add(p.id);
+          return true;
+        });
         setLiveMembers(
-          data.map((p) => ({
-            id: p.id,
-            name: p.name ?? '',
-            initials: (p.name ?? '').split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase(),
-            rankTitle: p.rank_title ?? 'Initiate',
-            sessionsThisMonth: p.check_ins ?? 0,
-            streak: p.streak ?? 0,
-            kudos: 0,
-            isMe: p.id === user.id,
-          }))
+          unique.map((p: any) => {
+            const history: Record<string, boolean> = p.attendance_history ?? {};
+            const monthSessions = Object.entries(history)
+              .filter(([d, v]) => d.startsWith(monthPrefix) && v === true).length;
+            return {
+              id: p.id,
+              name: p.name ?? '',
+              initials: (p.name ?? '').split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase(),
+              rankTitle: p.rank_title ?? 'Initiate',
+              sessionsThisMonth: monthSessions,
+              streak: p.streak ?? 0,
+              kudos: 0,
+              isMe: p.id === user.id,
+            };
+          })
         );
       });
   }, [user?.gymId, user?.id, demoMode]);

@@ -42,7 +42,7 @@ function relativeTime(iso: string): string {
   return `${Math.floor(hours / 24)}d ago`;
 }
 
-function FeedItemRow({ item }: { item: FeedItem }) {
+function FeedItemRow({ item, onKudos }: { item: FeedItem; onKudos?: () => void }) {
   const [kudos, setKudos] = useState(item.kudos);
   const [tapped, setTapped] = useState(false);
   const color = getInitialsColor(item.initials);
@@ -74,7 +74,7 @@ function FeedItemRow({ item }: { item: FeedItem }) {
 
       <motion.button
         type="button"
-        onClick={() => { if (!tapped) { setTapped(true); setKudos((k) => k + 1); } }}
+        onClick={() => { if (!tapped) { setTapped(true); setKudos((k) => k + 1); onKudos?.(); } }}
         aria-label={tapped ? `${kudos} respects given` : `Give respect (${kudos})`}
         aria-pressed={tapped}
         whileTap={{ scale: 0.88 }}
@@ -192,7 +192,16 @@ export default function GymFeedCard() {
 
       <div>
         {items.map((item) => (
-          <FeedItemRow key={item.id} item={item} />
+          <FeedItemRow
+            key={item.id}
+            item={item}
+            onKudos={isLive && supabase ? () => {
+              supabase!.from('gym_feed')
+                .update({ kudos_count: item.kudos + 1 })
+                .eq('id', item.id)
+                .then(({ error }) => { if (error) console.warn('[kudos]', error.message); });
+            } : undefined}
+          />
         ))}
         {items.length === 0 && (
           <p className="py-6 text-center text-xs" style={{ color: 'var(--text-faint)' }}>

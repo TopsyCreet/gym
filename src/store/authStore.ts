@@ -287,6 +287,16 @@ export const useAuthStore = create<AppState>((set, get) => ({
           mapped.dailyChallenges = loadDailyChallenges(userId) ?? [];
           // Preserve freezeTokens — not yet a Supabase column, falls back to localStorage value
           mapped.freezeTokens = (profile.freeze_tokens as number | null) ?? existing?.freezeTokens ?? 0;
+          // Guard against stale Supabase snapshot overwriting fresher localStorage data.
+          // The upsert in updateUser is async; if a check-in happened moments before refresh
+          // the Supabase row might not yet reflect it — keep the higher value.
+          if (savedUserData?.id === userId && savedUserData.checkIns > mapped.checkIns) {
+            mapped.checkIns      = savedUserData.checkIns;
+            mapped.streak        = Math.max(mapped.streak, savedUserData.streak);
+            mapped.longestStreak = Math.max(mapped.longestStreak, savedUserData.longestStreak);
+            mapped.attendanceHistory = { ...savedUserData.attendanceHistory, ...mapped.attendanceHistory };
+            mapped.lastCheckInDate = savedUserData.lastCheckInDate ?? mapped.lastCheckInDate;
+          }
           set((s) => ({ users: [mapped, ...s.users.filter((u) => u.id !== mapped.id)], currentUserId: userId }));
         }
       }
@@ -341,6 +351,15 @@ export const useAuthStore = create<AppState>((set, get) => ({
       let mapped: UserProfile;
       if (profile) {
         mapped = mapProfileToUser(profile, data.session.user.email ?? email);
+        // Same guard as init(): don't let a stale Supabase row wipe local check-in data
+        const localUser = get().users.find((u) => u.id === userId);
+        if (localUser && localUser.checkIns > mapped.checkIns) {
+          mapped.checkIns      = localUser.checkIns;
+          mapped.streak        = Math.max(mapped.streak, localUser.streak);
+          mapped.longestStreak = Math.max(mapped.longestStreak, localUser.longestStreak);
+          mapped.attendanceHistory = { ...localUser.attendanceHistory, ...mapped.attendanceHistory };
+          mapped.lastCheckInDate = localUser.lastCheckInDate ?? mapped.lastCheckInDate;
+        }
       } else {
         const newProfile = {
           id: userId,
@@ -575,7 +594,7 @@ export const useAuthStore = create<AppState>((set, get) => ({
     }
     (async () => {
       try {
-        await supabase.from('profiles').upsert({
+        const { error: upsertErr } = await supabase.from('profiles').upsert({
           id: user.id,
           name: user.name,
           avatar: user.avatar,
@@ -595,8 +614,9 @@ export const useAuthStore = create<AppState>((set, get) => ({
           freeze_tokens: user.freezeTokens,
           phone: user.phone,
         });
+        if (upsertErr) console.error('[updateUser]', upsertErr.message);
       } catch (e) {
-        // ignore
+        console.error('[updateUser] unexpected:', e);
       }
     })();
   },
