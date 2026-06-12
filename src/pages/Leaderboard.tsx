@@ -4,7 +4,7 @@
  * Showing mock data until that view exists.
  */
 
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Heart, TrendingUp, Calendar } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
@@ -103,51 +103,68 @@ export default function Leaderboard() {
   const demoMode = useAuthStore((state) => state.demoMode);
   const [tab, setTab] = useState<Tab>('sessions');
   const [liveMembers, setLiveMembers] = useState<(MockMember & { isMe: boolean })[] | null>(null);
+  const channelRef = useRef<any>(null);
 
-  useEffect(() => {
-    if (!supabaseConfigured || !supabase || demoMode || !user?.gymId) return;
+  const buildMembers = useCallback((rows: any[], userId: string) => {
     const now = new Date();
     const monthPrefix = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const seen = new Set<string>();
+    return rows
+      .filter((p: any) => { if (seen.has(p.id)) return false; seen.add(p.id); return true; })
+      .map((p: any) => {
+        const history: Record<string, boolean> = p.attendance_history ?? {};
+        const monthSessions = Object.entries(history)
+          .filter(([d, v]) => d.startsWith(monthPrefix) && v === true).length;
+        return {
+          id: p.id,
+          name: p.name ?? '',
+          initials: (p.name ?? '').split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase(),
+          rankTitle: p.rank_title ?? 'Initiate',
+          sessionsThisMonth: monthSessions,
+          streak: p.streak ?? 0,
+          kudos: 0,
+          isMe: p.id === userId,
+        };
+      });
+  }, []);
 
+  useEffect(() => {
+    if (!supabaseConfigured || !supabase || demoMode || !user?.gymId || !user?.id) return;
+    const gymId  = user.gymId;
+    const userId = user.id;
+
+    // Initial fetch
     supabase
       .from('profiles')
       .select('id, name, rank_title, streak, check_ins, attendance_history')
-      .eq('gym_id', user.gymId)
+      .eq('gym_id', gymId)
       .then(({ data, error }) => {
-        if (error) {
-          console.error('[Leaderboard] profiles query failed:', error.message, error.code);
-          return;
-        }
-        if (!data?.length) {
-          console.warn('[Leaderboard] no profiles returned for gym_id:', user.gymId);
-          return;
-        }
-        // Deduplicate by id (can happen if a blank profile row was created on a failed login)
-        const seen = new Set<string>();
-        const unique = data.filter((p: any) => {
-          if (seen.has(p.id)) return false;
-          seen.add(p.id);
-          return true;
-        });
-        setLiveMembers(
-          unique.map((p: any) => {
-            const history: Record<string, boolean> = p.attendance_history ?? {};
-            const monthSessions = Object.entries(history)
-              .filter(([d, v]) => d.startsWith(monthPrefix) && v === true).length;
-            return {
-              id: p.id,
-              name: p.name ?? '',
-              initials: (p.name ?? '').split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase(),
-              rankTitle: p.rank_title ?? 'Initiate',
-              sessionsThisMonth: monthSessions,
-              streak: p.streak ?? 0,
-              kudos: 0,
-              isMe: p.id === user.id,
-            };
-          })
-        );
+        if (error) { console.error('[Leaderboard] query failed:', error.message); return; }
+        if (data?.length) setLiveMembers(buildMembers(data, userId));
+        else console.warn('[Leaderboard] no profiles for gym_id:', gymId);
       });
-  }, [user?.gymId, user?.id, demoMode]);
+
+    // Real-time: re-fetch the full list whenever any gymmate's profile changes
+    const channel = supabase
+      .channel(`leaderboard-${gymId}`)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `gym_id=eq.${gymId}` },
+        () => {
+          supabase!
+            .from('profiles')
+            .select('id, name, rank_title, streak, check_ins, attendance_history')
+            .eq('gym_id', gymId)
+            .then(({ data }) => { if (data?.length) setLiveMembers(buildMembers(data, userId)); });
+        }
+      )
+      .subscribe();
+    channelRef.current = channel;
+
+    return () => {
+      if (channelRef.current && supabase) supabase.removeChannel(channelRef.current);
+    };
+  }, [user?.gymId, user?.id, demoMode, buildMembers]);
 
   const sessionsThisMonth = useMemo(() => {
     if (!user) return 0;

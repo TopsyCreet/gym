@@ -196,9 +196,7 @@ export default function GymFeedCard() {
             key={item.id}
             item={item}
             onKudos={isLive && supabase ? () => {
-              supabase!.from('gym_feed')
-                .update({ kudos_count: item.kudos + 1 })
-                .eq('id', item.id)
+              supabase!.rpc('increment_kudos', { feed_id: item.id })
                 .then(({ error }) => { if (error) console.warn('[kudos]', error.message); });
             } : undefined}
           />

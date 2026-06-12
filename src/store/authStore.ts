@@ -589,7 +589,7 @@ export const useAuthStore = create<AppState>((set, get) => ({
     if (user.dailyChallenges.length > 0) {
       saveDailyChallenges(user.id, user.dailyChallenges);
     }
-    if (!supabaseConfigured || !supabase) {
+    if (!supabaseConfigured || !supabase || get().demoMode) {
       return;
     }
     (async () => {
@@ -682,6 +682,8 @@ export const useAuthStore = create<AppState>((set, get) => ({
     const state = get();
     const user = state.users.find((item) => item.id === state.currentUserId);
     if (!user) return;
+    // Prevent double check-in on the same day
+    if (user.attendanceHistory[date]) return;
     const newHistory = { ...user.attendanceHistory, [date]: true };
     const currentStreak = user.streak + 1;
     const newXp = user.xp + 100;
