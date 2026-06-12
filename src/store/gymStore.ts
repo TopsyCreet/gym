@@ -12,6 +12,7 @@ export type GymState = {
   closeCheckInModal: () => void;
   verifyGymLocation: () => Promise<boolean>;
   checkInToday: () => Promise<void>;
+  forceCheckIn: () => Promise<void>;
   toggleAtGymOverride: () => void;
 };
 
@@ -63,5 +64,12 @@ export const useGymStore = create<GymState>((set, get) => ({
     }
     useAuthStore.getState().addCheckIn(today);
     set({ lastCheckInMessage: `Checked in at ${today}. STREAK: ${user.streak + 1} DAYS 🔥` });
+  },
+  forceCheckIn: async () => {
+    const user = useAuthStore.getState().getUser();
+    if (!user) return;
+    const today = new Date().toISOString().slice(0, 10);
+    useAuthStore.getState().addCheckIn(today);
+    set({ lastCheckInMessage: 'Checked in.' });
   },
 }));

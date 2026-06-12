@@ -338,10 +338,12 @@ function FailedStage({
   message,
   onRetry,
   onClose,
+  onForceCheckIn,
 }: {
   message: string | null;
   onRetry: () => void;
   onClose: () => void;
+  onForceCheckIn: () => void;
 }) {
   return (
     <div className="p-6 flex flex-col items-center text-center">
@@ -389,6 +391,18 @@ function FailedStage({
           Try Again
         </Button>
       </motion.div>
+
+      <motion.button
+        type="button"
+        onClick={onForceCheckIn}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.5 }}
+        className="mt-4 w-full py-2 text-sm"
+        style={{ color: 'var(--text-faint)' }}
+      >
+        I'm already inside — check in anyway
+      </motion.button>
     </div>
   );
 }
@@ -396,7 +410,7 @@ function FailedStage({
 // ── Main modal ───────────────────────────────────────────────────────────
 export default function CheckInModal() {
   const {
-    checkInModalOpen, closeCheckInModal, checkInToday,
+    checkInModalOpen, closeCheckInModal, checkInToday, forceCheckIn,
     distance, lastCheckInMessage, atGymOverride, toggleAtGymOverride,
   } = useGymStore();
 
@@ -419,6 +433,12 @@ export default function CheckInModal() {
     const today      = new Date().toISOString().slice(0, 10);
     setStage(latestUser?.lastCheckInDate === today ? 'success' : 'failed');
   }, [checkInToday]);
+
+  // Bypass geolocation when user is physically present but GPS fails
+  const runForceCheckIn = useCallback(async () => {
+    await forceCheckIn();
+    setStage('success');
+  }, [forceCheckIn]);
 
   // Reset when modal closes externally (e.g., backdrop tap during success)
   useEffect(() => {
@@ -511,6 +531,7 @@ export default function CheckInModal() {
                     message={lastCheckInMessage}
                     onRetry={runCheckIn}
                     onClose={handleClose}
+                    onForceCheckIn={runForceCheckIn}
                   />
                 </motion.div>
               )}
