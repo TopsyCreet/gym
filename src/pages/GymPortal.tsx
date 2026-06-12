@@ -3,7 +3,6 @@ import { motion } from 'framer-motion';
 import { useAuthStore } from '../store/authStore';
 import { gyms, findGymByCode } from '../data/gyms';
 import { TrendingUp, Users, CheckCircle, Target, ArrowUpRight } from 'lucide-react';
-import mascotNeutral from '../assets/brand/mascot_neutral.png';
 
 export default function GymPortal() {
   const users = useAuthStore((state) => state.users);
@@ -47,9 +46,6 @@ export default function GymPortal() {
           className="w-full max-w-sm"
         >
           <div className="card p-6 text-center">
-            <div className="flex justify-center mb-5">
-              <img src={mascotNeutral} alt="" aria-hidden="true" style={{ width: 80 }} />
-            </div>
             <p className="label tracking-[0.25em]">Gym Portal</p>
             <h1 className="mt-2 text-2xl font-black text-white">Enter your gym code</h1>
             <p className="mt-2 text-xs" style={{ color: 'var(--text-faint)' }}>
@@ -124,8 +120,8 @@ export default function GymPortal() {
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         {[
           { icon: Users,      label: 'Total Members',      value: stats.total,        color: '#D4AF37' },
-          { icon: TrendingUp, label: 'Avg Streak',         value: `${stats.avgStreak}d`, color: '#2ECC71' },
-          { icon: CheckCircle,label: 'Check-ins Today',    value: stats.checkInsToday, color: '#4A90D9' },
+          { icon: TrendingUp, label: 'Avg Streak',         value: `${stats.avgStreak}d`, color: '#D4A017' },
+          { icon: CheckCircle,label: 'Check-ins Today',    value: stats.checkInsToday, color: '#8A9BA8' },
           { icon: Target,     label: 'Trials Cleared Today', value: stats.trialsToday, color: '#B3B3B3' },
         ].map((s) => (
           <div
@@ -225,10 +221,10 @@ export default function GymPortal() {
                           {isActive && (
                             <span
                               className="h-1.5 w-1.5 rounded-full"
-                              style={{ background: '#2ECC71', boxShadow: '0 0 4px #2ECC71' }}
+                              style={{ background: '#D4A017', boxShadow: '0 0 4px rgba(212,160,23,0.5)' }}
                             />
                           )}
-                          <p className="text-right text-xs" style={{ color: isActive ? '#2ECC71' : 'var(--text-faint)' }}>
+                          <p className="text-right text-xs" style={{ color: isActive ? '#D4A017' : 'var(--text-faint)' }}>
                             {member.lastCheckInDate
                               ? isActive ? 'Today' : member.lastCheckInDate.slice(5)
                               : 'Never'}

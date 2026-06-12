@@ -29,8 +29,8 @@ export const ranks: RankDefinition[] = [
   },
   {
     title: 'Vanguard',
-    color: '#4A90D9',
-    gradient: 'linear-gradient(135deg, #2E6BB0, #4A90D9)',
+    color: '#8A9BA8',
+    gradient: 'linear-gradient(135deg, #6B7E8C, #8A9BA8)',
     subtitle: 'You lead by example.',
     description: 'Your discipline speaks before you do.',
     streakMin: 7,
@@ -38,8 +38,8 @@ export const ranks: RankDefinition[] = [
   },
   {
     title: 'Elite',
-    color: '#2ECC71',
-    gradient: 'linear-gradient(135deg, #20924F, #2ECC71)',
+    color: '#C0A864',
+    gradient: 'linear-gradient(135deg, #9E8840, #C0A864)',
     subtitle: 'Few reach this level.',
     description: 'You have proven what most only promise.',
     streakMin: 14,

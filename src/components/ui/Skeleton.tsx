@@ -54,3 +54,21 @@ export function SkeletonCard({ className = '' }: { className?: string }) {
     </div>
   );
 }
+
+/** Matches the height and layout of a FeedItemRow */
+export function FeedRowSkeleton() {
+  return (
+    <div
+      className="flex items-center gap-3 py-3"
+      style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
+      aria-hidden="true"
+    >
+      <Skeleton width={36} height={36} rounded="9999px" />
+      <div className="flex-1 space-y-1.5">
+        <Skeleton height={11} width="60%" />
+        <Skeleton height={9}  width="38%" />
+      </div>
+      <Skeleton width={44} height={32} rounded="12px" />
+    </div>
+  );
+}

@@ -9,7 +9,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Heart, TrendingUp, Calendar } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { supabase, supabaseConfigured } from '../lib/supabaseClient';
-import mascotCelebrating from '../assets/brand/mascot_celebrating.png';
 
 type MockMember = {
   id: string;
@@ -31,11 +30,11 @@ const MOCK_MEMBERS: MockMember[] = [
 ];
 
 const INITIALS_COLORS: Record<string, string> = {
-  A:'#CD853F', B:'#4A90D9', C:'#2ECC71', D:'#D4A017', E:'#A085E0',
-  F:'#CD853F', G:'#4A90D9', H:'#2ECC71', I:'#D4A017', J:'#A085E0',
-  K:'#CD853F', L:'#4A90D9', M:'#2ECC71', N:'#D4A017', O:'#A085E0',
-  P:'#CD853F', Q:'#4A90D9', R:'#2ECC71', S:'#D4A017', T:'#A085E0',
-  U:'#CD853F', V:'#4A90D9', W:'#2ECC71', X:'#D4A017', Y:'#A085E0',
+  A:'#CD853F', B:'#8A9BA8', C:'#D4A017', D:'#D4A017', E:'#A085E0',
+  F:'#CD853F', G:'#8A9BA8', H:'#D4A017', I:'#D4A017', J:'#A085E0',
+  K:'#CD853F', L:'#8A9BA8', M:'#D4A017', N:'#D4A017', O:'#A085E0',
+  P:'#CD853F', Q:'#8A9BA8', R:'#D4A017', S:'#D4A017', T:'#A085E0',
+  U:'#CD853F', V:'#8A9BA8', W:'#D4A017', X:'#D4A017', Y:'#A085E0',
   Z:'#CD853F',
 };
 const getInitialsColor = (s: string) => INITIALS_COLORS[s[0]?.toUpperCase()] ?? 'var(--gold)';
@@ -45,6 +44,8 @@ const PODIUM: Record<number, { bg: string; text: string; border: string }> = {
   1: { bg: 'rgba(161,161,170,0.08)', text: '#A1A1AA', border: 'rgba(161,161,170,0.2)' },
   2: { bg: 'rgba(205,133,63,0.08)',  text: '#CD853F', border: 'rgba(205,133,63,0.2)'  },
 };
+
+function plural(n: number, word: string) { return `${n} ${word}${n !== 1 ? 's' : ''}`; }
 
 type Tab = 'sessions' | 'streak';
 
@@ -110,7 +111,12 @@ export default function Leaderboard() {
     const monthPrefix = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
     const seen = new Set<string>();
     return rows
-      .filter((p: any) => { if (seen.has(p.id)) return false; seen.add(p.id); return true; })
+      .filter((p: any) => {
+        if (!p.name?.trim()) return false; // skip blank placeholder rows from failed logins
+        if (seen.has(p.id)) return false;
+        seen.add(p.id);
+        return true;
+      })
       .map((p: any) => {
         const history: Record<string, boolean> = p.attendance_history ?? {};
         const monthSessions = Object.entries(history)
@@ -247,7 +253,6 @@ export default function Leaderboard() {
               </span>
             )}
           </div>
-          <img src={mascotCelebrating} alt="" aria-hidden="true" style={{ width: 100 }} />
         </div>
 
         <h1 className="text-display text-white">Gym Ranks</h1>
@@ -257,7 +262,7 @@ export default function Leaderboard() {
 
         <div className="mt-6 flex flex-wrap gap-2.5">
           {[
-            { label: 'Sessions', desc: 'Check-ins this month',  color: '#3D7FD4' },
+            { label: 'Sessions', desc: 'Check-ins this month',  color: '#8A9BA8' },
             { label: 'Streak',   desc: 'Consecutive days',       color: '#D4A017' },
           ].map((t) => (
             <div
@@ -322,8 +327,8 @@ export default function Leaderboard() {
             const podium = PODIUM[index];
             const accentColor = getInitialsColor(member.initials);
             const score = tab === 'sessions'
-              ? `${member.sessionsThisMonth} sessions`
-              : `${member.streak}d`;
+              ? plural(member.sessionsThisMonth, 'session')
+              : plural(member.streak, 'day');
 
             return (
               <motion.div

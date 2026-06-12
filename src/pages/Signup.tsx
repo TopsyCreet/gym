@@ -8,11 +8,6 @@ import onboarding1 from '../assets/brand/onboarding_1.png';
 import onboarding2 from '../assets/brand/onboarding_2.png';
 import onboarding3 from '../assets/brand/onboarding_3.png';
 import logoPng from '../assets/brand/logo.png';
-import mascotEncouraging from '../assets/brand/mascot_encouraging.png';
-import mascotHappy       from '../assets/brand/mascot_happy.png';
-import mascotCelebrating from '../assets/brand/mascot_celebrating.png';
-
-const STEP_MASCOT = [mascotEncouraging, mascotHappy, mascotCelebrating];
 
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
@@ -44,7 +39,7 @@ const TIERS = [
     days: 3,
     desc: 'Build the habit before the intensity.',
     schedule: ['Mon', 'Wed', 'Fri'],
-    color: '#3D7FD4',
+    color: '#8A9BA8',
   },
   {
     id: 'standard',
@@ -61,7 +56,7 @@ const TIERS = [
     days: 5,
     desc: 'For those who make the gym non-negotiable.',
     schedule: ['Mon', 'Tue', 'Wed', 'Fri', 'Sat'],
-    color: '#27AE60',
+    color: '#C0A864',
   },
 ] as const;
 
@@ -248,11 +243,6 @@ export default function Signup() {
               transition={{ duration: 0.26 }}
               className="p-7 sm:p-9 space-y-5"
             >
-              {/* Mascot — only visible on mobile (desktop has the illustration panel) */}
-              <div className="lg:hidden flex justify-center pt-1 pb-2">
-                <img src={STEP_MASCOT[step - 1]} alt="" aria-hidden="true" style={{ width: 90 }} />
-              </div>
-
               {/* Mobile step label */}
               <div className="lg:hidden">
                 <p className="label">{currentStep.label} · Step {step} of 3</p>

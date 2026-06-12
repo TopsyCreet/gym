@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Users, Heart } from 'lucide-react';
 import { supabase, supabaseConfigured } from '../lib/supabaseClient';
 import { useAuthStore } from '../store/authStore';
+import { FeedRowSkeleton } from './ui/Skeleton';
 
 // Per-user localStorage helpers so kudos state survives refresh and logout
 function kudosStorageKey(userId: string) { return `prime_kudos_${userId}`; }
@@ -40,11 +41,11 @@ const MOCK_FEED: FeedItem[] = [
 ];
 
 const INITIALS_COLORS: Record<string, string> = {
-  A:'#CD853F', B:'#4A90D9', C:'#2ECC71', D:'#D4A017', E:'#A085E0',
-  F:'#CD853F', G:'#4A90D9', H:'#2ECC71', I:'#D4A017', J:'#A085E0',
-  K:'#CD853F', L:'#4A90D9', M:'#2ECC71', N:'#D4A017', O:'#A085E0',
-  P:'#CD853F', Q:'#4A90D9', R:'#2ECC71', S:'#D4A017', T:'#A085E0',
-  U:'#CD853F', V:'#4A90D9', W:'#2ECC71', X:'#D4A017', Y:'#A085E0',
+  A:'#CD853F', B:'#8A9BA8', C:'#D4A017', D:'#D4A017', E:'#A085E0',
+  F:'#CD853F', G:'#8A9BA8', H:'#D4A017', I:'#D4A017', J:'#A085E0',
+  K:'#CD853F', L:'#8A9BA8', M:'#D4A017', N:'#D4A017', O:'#A085E0',
+  P:'#CD853F', Q:'#8A9BA8', R:'#D4A017', S:'#D4A017', T:'#A085E0',
+  U:'#CD853F', V:'#8A9BA8', W:'#D4A017', X:'#D4A017', Y:'#A085E0',
   Z:'#CD853F',
 };
 

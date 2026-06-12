@@ -8,7 +8,6 @@ import { daysOfWeek } from '../utils/streakCalculator';
 import RankBadge from '../components/RankBadge';
 import { getRankByTitle } from '../data/ranks';
 import { TrendingUp, Target, CheckCircle, Save, Settings } from 'lucide-react';
-import mascotHappy from '../assets/brand/mascot_happy.png';
 
 type RankTier = { title: string; minCheckIns: number };
 
@@ -68,8 +67,8 @@ export default function Profile() {
   }, [pct]);
 
   const statCards = [
-    { icon: CheckCircle, label: 'Sessions',      value: user?.checkIns ?? 0,            color: '#3D7FD4' },
-    { icon: TrendingUp,  label: 'Active Streak', value: user?.streak ?? 0,              color: '#27AE60', suffix: 'd' },
+    { icon: CheckCircle, label: 'Sessions',      value: user?.checkIns ?? 0,            color: '#8A9BA8' },
+    { icon: TrendingUp,  label: 'Active Streak', value: user?.streak ?? 0,              color: '#D4A017', suffix: 'd' },
     { icon: TrendingUp,  label: 'Best Streak',   value: user?.longestStreak ?? 0,       color: '#A1A1AA', suffix: 'd' },
     { icon: Target,      label: 'Trials',        value: user?.challengesCompleted ?? 0, color: '#D4A017' },
   ];
@@ -115,15 +114,6 @@ export default function Profile() {
           style={{ background: `linear-gradient(90deg, transparent, ${rank.color}70, transparent)` }}
         />
 
-        {/* Mascot — floats bottom-right of the hero card */}
-        <img
-          src={mascotHappy}
-          alt=""
-          aria-hidden="true"
-          className="pointer-events-none absolute bottom-0 right-3 select-none"
-          style={{ width: 90, opacity: 0.9 }}
-        />
-
         <div className="relative p-6 sm:p-8">
           {/* Settings shortcut */}
           <div className="flex justify-end mb-4">
@@ -143,7 +133,7 @@ export default function Profile() {
           </div>
 
           {/* Avatar + identity */}
-          <div className="flex items-center gap-5 pr-20">
+          <div className="flex items-center gap-5">
             {user.avatar ? (
               <img
                 src={user.avatar}

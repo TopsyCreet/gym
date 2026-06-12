@@ -8,7 +8,9 @@ export type GymState = {
   atGymOverride: boolean;
   lastCheckInMessage: string | null;
   checkInModalOpen: boolean;
+  skipReady: boolean;
   openCheckInModal: () => void;
+  openCheckInDirect: () => void;
   closeCheckInModal: () => void;
   verifyGymLocation: () => Promise<boolean>;
   checkInToday: () => Promise<void>;
@@ -24,8 +26,10 @@ export const useGymStore = create<GymState>((set, get) => ({
   atGymOverride: false,
   lastCheckInMessage: null,
   checkInModalOpen: false,
-  openCheckInModal: () => set({ checkInModalOpen: true, lastCheckInMessage: null }),
-  closeCheckInModal: () => set({ checkInModalOpen: false, verifying: false }),
+  skipReady: false,
+  openCheckInModal: () => set({ checkInModalOpen: true, skipReady: false, lastCheckInMessage: null }),
+  openCheckInDirect: () => set({ checkInModalOpen: true, skipReady: true, lastCheckInMessage: null }),
+  closeCheckInModal: () => set({ checkInModalOpen: false, verifying: false, skipReady: false }),
   toggleAtGymOverride: () => set((state) => ({ atGymOverride: !state.atGymOverride })),
   verifyGymLocation: async () => {
     set({ verifying: true, distance: null, lastCheckInMessage: null });

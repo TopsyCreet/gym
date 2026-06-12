@@ -264,29 +264,33 @@ function SuccessStage({ onClose }: { onClose: () => void }) {
   const user   = useAuthStore((s) => s.getUser());
   const streak = user?.streak ?? 0;
 
-  return (
-    <div className="p-6 flex flex-col items-center text-center">
-      {/* Mascot celebrating — auto-resets after 4s (spec Mascot behaviour) */}
-      <Mascot
-        override="celebrating"
-        size={150}
-        speechKey="checkIn.success"
-        suppressIdle
-      />
+  // Auto-close after 2.2s — skippable by tapping anywhere
+  useEffect(() => {
+    const t = setTimeout(onClose, 2200);
+    return () => clearTimeout(t);
+  }, [onClose]);
 
-      {/* Success checkmark */}
+  return (
+    <motion.div
+      className="p-6 flex flex-col items-center text-center cursor-pointer select-none"
+      onClick={onClose}
+      role="button"
+      aria-label="Tap to dismiss"
+    >
+      <Mascot override="celebrating" size={150} speechKey="checkIn.success" suppressIdle />
+
       <motion.div
         initial={{ scale: 0.55, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ type: 'spring', stiffness: 320, damping: 18, delay: 0.12 }}
         className="mt-4 flex h-16 w-16 items-center justify-center rounded-2xl"
         style={{
-          background: 'rgba(39,174,96,0.1)',
-          border: '1px solid rgba(39,174,96,0.28)',
-          boxShadow: '0 0 32px rgba(39,174,96,0.2)',
+          background: 'var(--gold-faint)',
+          border: '1px solid rgba(212,160,23,0.3)',
+          boxShadow: '0 0 32px rgba(212,160,23,0.2)',
         }}
       >
-        <CheckCircle size={30} style={{ color: 'var(--success)' }} aria-hidden="true" />
+        <CheckCircle size={30} style={{ color: 'var(--gold)' }} aria-hidden="true" />
       </motion.div>
 
       <motion.h2
@@ -303,7 +307,7 @@ function SuccessStage({ onClose }: { onClose: () => void }) {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.32 }}
         className="mt-1.5 text-4xl font-black tabular-nums"
-        style={{ color: 'var(--gold)' }}
+        style={{ color: 'var(--gold)', fontFamily: 'Inter, system-ui, sans-serif', fontVariantNumeric: 'tabular-nums' }}
         aria-label={`Day ${streak} streak`}
       >
         Day {streak}
@@ -314,22 +318,11 @@ function SuccessStage({ onClose }: { onClose: () => void }) {
         animate={{ opacity: 1 }}
         transition={{ delay: 0.44 }}
         className="mt-3 text-sm"
-        style={{ color: 'var(--text-secondary)' }}
+        style={{ color: 'var(--text-faint)' }}
       >
-        Recorded. Nothing undoes this.
+        Tap anywhere to continue.
       </motion.p>
-
-      <motion.div
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.58 }}
-        className="mt-7 w-full"
-      >
-        <Button variant="secondary" onClick={onClose} className="w-full">
-          Continue
-        </Button>
-      </motion.div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -412,6 +405,7 @@ export default function CheckInModal() {
   const {
     checkInModalOpen, closeCheckInModal, checkInToday, forceCheckIn,
     distance, lastCheckInMessage, atGymOverride, toggleAtGymOverride,
+    skipReady,
   } = useGymStore();
 
   const user   = useAuthStore((s) => s.getUser());
@@ -421,7 +415,6 @@ export default function CheckInModal() {
 
   const handleClose = useCallback(() => {
     closeCheckInModal();
-    // Reset stage after exit animation completes
     setTimeout(() => setStage('ready'), 320);
   }, [closeCheckInModal]);
 
@@ -440,7 +433,14 @@ export default function CheckInModal() {
     setStage('success');
   }, [forceCheckIn]);
 
-  // Reset when modal closes externally (e.g., backdrop tap during success)
+  // Skip ReadyStage when opened via hero CTA direct tap (P2.1 — 1-tap flow)
+  useEffect(() => {
+    if (checkInModalOpen && skipReady) {
+      runCheckIn();
+    }
+  }, [checkInModalOpen, skipReady, runCheckIn]);
+
+  // Reset when modal closes externally
   useEffect(() => {
     if (!checkInModalOpen) {
       const t = setTimeout(() => setStage('ready'), 320);

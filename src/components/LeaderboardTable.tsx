@@ -6,7 +6,7 @@ import { TrendingUp, BarChart2, Target } from 'lucide-react';
 const tabs = [
   { key: 'streak',     label: 'Streak',  icon: TrendingUp, color: '#D4AF37' },
   { key: 'xp',         label: 'Points',  icon: BarChart2,  color: '#A1A1AA' },
-  { key: 'challenges', label: 'Trials',  icon: Target,     color: '#2ECC71' },
+  { key: 'challenges', label: 'Trials',  icon: Target,     color: '#D4A017' },
 ] as const;
 
 type Tab = typeof tabs[number]['key'];

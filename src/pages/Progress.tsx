@@ -2,11 +2,11 @@ import { useState, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGSAP } from '@gsap/react';
 import gsap from 'gsap';
-import { ChevronLeft, ChevronRight, Check, X as XIcon, Minus } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Check, X as XIcon, Minus, CheckCircle } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import type { AttendanceHistory } from '../store/authStore';
 import StatCounter from '../components/ui/StatCounter';
-import mascotHappy from '../assets/brand/mascot_happy.png';
+import { sessionFlag } from '../lib/sessionFlags';
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 
@@ -258,18 +258,82 @@ function MonthCalendar({ history, schedule }: { history: AttendanceHistory; sche
   );
 }
 
+// ── Foundation Week — shown when checkIns < 7 ────────────────────────────
+function FoundationWeek({ checkIns }: { checkIns: number }) {
+  const remaining = Math.max(0, 7 - checkIns);
+  return (
+    <motion.div
+      key="foundation"
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -10 }}
+      transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+      className="card-hero p-6"
+      data-card
+    >
+      <p className="label tracking-[0.22em]" style={{ color: 'var(--gold)' }}>Foundation Week</p>
+      <h2 className="mt-1.5 text-2xl font-black text-white leading-tight">Building the record.</h2>
+      <p className="mt-2 text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+        Your history starts here. Each check-in cements the foundation that all future records are built on.
+      </p>
+
+      {/* 7 day tracker */}
+      <div className="flex gap-2 mt-6" role="list" aria-label="Foundation week progress">
+        {Array.from({ length: 7 }, (_, i) => {
+          const done = i < checkIns;
+          return (
+            <div key={i} className="flex flex-1 flex-col items-center gap-1.5" role="listitem">
+              <motion.div
+                initial={done ? { scale: 0.5, opacity: 0 } : { scale: 1, opacity: 1 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ type: 'spring', stiffness: 420, damping: 22, delay: i * 0.05 }}
+                className="w-full aspect-square rounded-xl flex items-center justify-center"
+                style={{
+                  background: done ? 'var(--gold)' : 'var(--bg-overlay-2)',
+                  border: done ? 'none' : '1px solid var(--border-faint)',
+                  maxWidth: 40,
+                }}
+                aria-label={done ? `Day ${i + 1} complete` : `Day ${i + 1} pending`}
+              >
+                {done
+                  ? <CheckCircle size={14} style={{ color: '#0A0A0A' }} aria-hidden="true" />
+                  : <span className="text-[10px] font-black" style={{ color: 'var(--text-faint)' }}>{i + 1}</span>
+                }
+              </motion.div>
+              <span
+                className="text-[7px] font-bold uppercase tracking-wider"
+                style={{ color: done ? 'var(--gold)' : 'var(--text-faint)' }}
+                aria-hidden="true"
+              >
+                D{i + 1}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+
+      <p className="mt-4 text-xs" style={{ color: 'var(--text-faint)' }}>
+        {remaining > 0
+          ? `${remaining} more session${remaining !== 1 ? 's' : ''} to unlock full analytics.`
+          : 'Analytics unlocking…'}
+      </p>
+    </motion.div>
+  );
+}
+
 // ── Main page ─────────────────────────────────────────────────────────────
 export default function Progress() {
   const user = useAuthStore((s) => s.getUser());
   const containerRef = useRef<HTMLDivElement>(null);
   const heatmapRef   = useRef<HTMLDivElement>(null);
 
-  // GSAP: card stagger entrance
+  // GSAP: card stagger entrance — first mount only per session
   useGSAP(() => {
-    if (!containerRef.current) return;
+    if (!containerRef.current || sessionFlag.check('stagger:progress')) return;
+    sessionFlag.set('stagger:progress');
     gsap.from(containerRef.current.querySelectorAll('[data-card]'), {
       opacity: 0, y: 12,
-      duration: 0.4, stagger: 0.07,
+      duration: 0.4, stagger: 0.06,
       ease: 'power2.out', clearProps: 'all',
     });
   }, { scope: containerRef });
@@ -307,7 +371,6 @@ export default function Progress() {
           <p className="label">Progress</p>
           <h1 className="mt-0.5 text-display font-black leading-none text-white">Your Record</h1>
         </div>
-        <img src={mascotHappy} alt="" aria-hidden="true" style={{ width: 96 }} />
       </div>
 
       {/* ── Streak spotlight ───────────────────────────────────────── */}
@@ -317,7 +380,7 @@ export default function Progress() {
             <p className="label mb-1">Current Streak</p>
             <p
               className="text-[4rem] font-black leading-none tabular-nums"
-              style={{ color: user.streak > 0 ? 'var(--gold)' : 'var(--text-faint)', fontFamily: 'Space Grotesk, system-ui, sans-serif' }}
+              style={{ color: user.streak > 0 ? 'var(--gold)' : 'var(--text-faint)', fontFamily: 'Inter, system-ui, sans-serif' }}
               aria-label={`${user.streak} day streak`}
             >
               <StatCounter value={user.streak} duration={0.7} />
@@ -331,7 +394,7 @@ export default function Progress() {
             <p className="label mb-1">Personal Best</p>
             <p
               className="text-[4rem] font-black leading-none tabular-nums"
-              style={{ color: 'var(--text-secondary)', fontFamily: 'Space Grotesk, system-ui, sans-serif' }}
+              style={{ color: 'var(--text-secondary)', fontFamily: 'Inter, system-ui, sans-serif' }}
               aria-label={`${user.longestStreak} day personal best`}
             >
               <StatCounter value={user.longestStreak} duration={0.9} />
@@ -340,8 +403,8 @@ export default function Progress() {
           </div>
         </div>
 
-        {/* Current vs best comparison bar */}
-        {user.longestStreak > 0 && (
+        {/* Current vs best — only shown when best > 3 (meaningful comparison) */}
+        {user.longestStreak > 3 && (
           <div className="mt-5">
             <div className="flex items-center justify-between mb-1.5">
               <p className="label">Current vs Best</p>
@@ -368,97 +431,108 @@ export default function Progress() {
         )}
       </div>
 
-      {/* ── Monthly calendar ───────────────────────────────────────── */}
+      {/* ── Monthly calendar — always visible ────────────────────── */}
       <div className="card p-5" data-card>
         <p className="label mb-4">Attendance Calendar</p>
         <MonthCalendar history={user.attendanceHistory} schedule={user.schedule} />
       </div>
 
-      {/* ── Activity heatmap (90 days) ────────────────────────────── */}
-      <div className="card p-5" data-card>
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <p className="label">Activity — Last 13 Weeks</p>
-          </div>
-          <div className="flex items-center gap-3 text-[9px] font-bold uppercase tracking-wide" style={{ color: 'var(--text-faint)' }}>
-            <span className="flex items-center gap-1">
-              <span className="inline-block w-2 h-2 rounded-sm" style={{ background: 'var(--gold)' }} aria-hidden="true" />
-              Proved
-            </span>
-            <span className="flex items-center gap-1">
-              <span className="inline-block w-2 h-2 rounded-sm" style={{ background: 'var(--steel)' }} aria-hidden="true" />
-              Bonus
-            </span>
-          </div>
-        </div>
-
-        <div ref={heatmapRef}>
-          {/* Day-of-week labels + cell rows */}
-          {['M','T','W','T','F','S','S'].map((dayLabel, dow) => (
-            <div key={dow} className="flex items-center gap-0.5 mb-0.5">
-              <span
-                className="shrink-0 text-right"
-                style={{ width: 10, fontSize: 7, fontWeight: 700, color: 'var(--text-faint)', lineHeight: 1 }}
-                aria-hidden="true"
-              >
-                {dayLabel}
-              </span>
-              <div className="w-1 shrink-0" aria-hidden="true" />
-              {Array.from({ length: 13 }, (_, w) => {
-                const cell = heatmapCells[w * 7 + dow];
-                if (!cell) return <div key={w} style={{ width: 12, height: 12, flexShrink: 0 }} />;
-                return (
-                  <div
-                    key={w}
-                    data-cell
-                    className="rounded-[2px] shrink-0"
-                    style={{ width: 12, height: 12, background: heatmapColor(cell), outline: cell.isToday ? '1.5px solid var(--gold)' : 'none', outlineOffset: 1 }}
-                    title={`${cell.key}: ${cell.attended ? (cell.scheduled ? 'Proved' : 'Bonus') : cell.scheduled ? 'Missed' : 'Rest'}`}
-                    role="img"
-                    aria-label={`${cell.key}: ${cell.attended ? 'session' : 'rest'}`}
-                  />
-                );
-              })}
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* ── Weekly consistency bar chart ───────────────────────────── */}
-      <div className="card p-5" data-card>
-        <p className="label mb-4">Weekly Sessions — Last 8 Weeks</p>
-        <div className="flex items-end gap-1.5 h-20" role="img" aria-label="Weekly session history bar chart">
-          {weeklyHistory.map(({ label, count }, i) => (
-            <div key={i} className="flex flex-1 flex-col items-center gap-1.5">
-              <span
-                className="text-[9px] font-bold tabular-nums"
-                style={{ color: count > 0 ? 'var(--gold)' : 'var(--text-faint)' }}
-                aria-hidden="true"
-              >
-                {count || ''}
-              </span>
-              <div
-                className="relative w-full rounded-sm overflow-hidden"
-                style={{ height: 48, background: 'var(--bg-overlay-2)' }}
-              >
-                <motion.div
-                  className="absolute bottom-0 w-full rounded-sm"
-                  style={{ background: count > 0 ? 'var(--gold)' : 'var(--bg-overlay-3)' }}
-                  initial={{ height: 0 }}
-                  animate={{ height: `${(count / maxWeekCount) * 100}%` }}
-                  transition={{ duration: 0.8, delay: i * 0.06, ease: [0.22, 1, 0.36, 1] }}
-                />
+      <AnimatePresence mode="wait">
+        {user.checkIns < 7 ? (
+          <FoundationWeek key="foundation" checkIns={user.checkIns} />
+        ) : (
+          <motion.div
+            key="full-analytics"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+            className="space-y-3"
+          >
+            {/* Activity heatmap (90 days) */}
+            <div className="card p-5" data-card>
+              <div className="flex items-center justify-between mb-4">
+                <p className="label">Activity — Last 13 Weeks</p>
+                <div className="flex items-center gap-3 text-[9px] font-bold uppercase tracking-wide" style={{ color: 'var(--text-faint)' }}>
+                  <span className="flex items-center gap-1">
+                    <span className="inline-block w-2 h-2 rounded-sm" style={{ background: 'var(--gold)' }} aria-hidden="true" />
+                    Proved
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="inline-block w-2 h-2 rounded-sm" style={{ background: 'var(--steel)' }} aria-hidden="true" />
+                    Bonus
+                  </span>
+                </div>
               </div>
-              <p className="label text-center leading-tight" style={{ fontSize: 7 }} aria-hidden="true">
-                {label}
+              <div ref={heatmapRef}>
+                {['M','T','W','T','F','S','S'].map((dayLabel, dow) => (
+                  <div key={dow} className="flex items-center gap-0.5 mb-0.5">
+                    <span
+                      className="shrink-0 text-right"
+                      style={{ width: 10, fontSize: 7, fontWeight: 700, color: 'var(--text-faint)', lineHeight: 1 }}
+                      aria-hidden="true"
+                    >
+                      {dayLabel}
+                    </span>
+                    <div className="w-1 shrink-0" aria-hidden="true" />
+                    {Array.from({ length: 13 }, (_, w) => {
+                      const cell = heatmapCells[w * 7 + dow];
+                      if (!cell) return <div key={w} style={{ width: 12, height: 12, flexShrink: 0 }} />;
+                      return (
+                        <div
+                          key={w}
+                          data-cell
+                          className="rounded-[2px] shrink-0"
+                          style={{ width: 12, height: 12, background: heatmapColor(cell), outline: cell.isToday ? '1.5px solid var(--gold)' : 'none', outlineOffset: 1 }}
+                          title={`${cell.key}: ${cell.attended ? (cell.scheduled ? 'Proved' : 'Bonus') : cell.scheduled ? 'Missed' : 'Rest'}`}
+                          role="img"
+                          aria-label={`${cell.key}: ${cell.attended ? 'session' : 'rest'}`}
+                        />
+                      );
+                    })}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Weekly consistency bar chart */}
+            <div className="card p-5" data-card>
+              <p className="label mb-4">Weekly Sessions — Last 8 Weeks</p>
+              <div className="flex items-end gap-1.5 h-20" role="img" aria-label="Weekly session history bar chart">
+                {weeklyHistory.map(({ label, count }, i) => (
+                  <div key={i} className="flex flex-1 flex-col items-center gap-1.5">
+                    <span
+                      className="text-[9px] font-bold tabular-nums"
+                      style={{ color: count > 0 ? 'var(--gold)' : 'var(--text-faint)' }}
+                      aria-hidden="true"
+                    >
+                      {count || ''}
+                    </span>
+                    <div
+                      className="relative w-full rounded-sm overflow-hidden"
+                      style={{ height: 48, background: 'var(--bg-overlay-2)' }}
+                    >
+                      <motion.div
+                        className="absolute bottom-0 w-full rounded-sm"
+                        style={{ background: count > 0 ? 'var(--gold)' : 'var(--bg-overlay-3)' }}
+                        initial={{ height: 0 }}
+                        animate={{ height: `${(count / maxWeekCount) * 100}%` }}
+                        transition={{ duration: 0.8, delay: i * 0.06, ease: [0.22, 1, 0.36, 1] }}
+                      />
+                    </div>
+                    <p className="label text-center leading-tight" style={{ fontSize: 7 }} aria-hidden="true">
+                      {label}
+                    </p>
+                  </div>
+                ))}
+              </div>
+              <p className="mt-3 text-xs" style={{ color: 'var(--text-faint)' }}>
+                Target: {user.schedule.length} session{user.schedule.length !== 1 ? 's' : ''} per week
               </p>
             </div>
-          ))}
-        </div>
-        <p className="mt-3 text-xs" style={{ color: 'var(--text-faint)' }}>
-          Target: {user.schedule.length} session{user.schedule.length !== 1 ? 's' : ''} per week
-        </p>
-      </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ── Lifetime stats ─────────────────────────────────────────── */}
       <div className="grid grid-cols-3 gap-3" data-card>

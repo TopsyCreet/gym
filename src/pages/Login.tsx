@@ -4,7 +4,6 @@ import { motion } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import logoPng from '../assets/brand/logo.png';
-import mascotEncouraging from '../assets/brand/mascot_encouraging.png';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -47,9 +46,6 @@ export default function Login() {
               style={{ background: '#D4AF37' }}
             />
             <img src={logoPng} alt="PRIME" className="relative h-16 w-16 object-contain" />
-          </div>
-          <div className="flex justify-center mb-4">
-            <img src={mascotEncouraging} alt="" aria-hidden="true" style={{ width: 96 }} />
           </div>
           <h1 className="text-3xl font-black text-white">Welcome back.</h1>
           <p className="mt-2 text-sm" style={{ color: 'var(--text-muted)' }}>

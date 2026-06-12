@@ -2,7 +2,6 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { motion } from 'framer-motion';
 import { LogOut } from 'lucide-react';
-import ThemeToggle from './ThemeToggle';
 import logoPng from '../assets/brand/logo.png';
 
 const links = [
@@ -40,12 +39,8 @@ export default function Navbar() {
             onClick={() => navigate('/')}
             className="group flex items-center gap-3 transition-opacity hover:opacity-80"
           >
-            <div className="relative flex h-9 w-9 shrink-0 items-center justify-center">
-              <div
-                className="absolute inset-0 rounded-[10px] opacity-30 blur-[12px] transition-opacity group-hover:opacity-50"
-                style={{ background: '#D4AF37' }}
-              />
-              <img src={logoPng} alt="PRIME" className="relative h-9 w-9 object-contain" />
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center">
+              <img src={logoPng} alt="PRIME" className="h-9 w-9 object-contain" />
             </div>
             <div className="hidden sm:block">
               <p className="label leading-none tracking-[0.3em]">Operating System</p>
@@ -82,7 +77,6 @@ export default function Navbar() {
 
           {/* Actions */}
           <div className="flex items-center gap-2">
-            <ThemeToggle />
             {user ? (
               <div className="flex items-center gap-2">
                 <button
@@ -127,8 +121,8 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* Demo hint strip */}
-      {!user && (
+      {/* Demo hint strip — only shown when VITE_SHOW_DEMO_BANNER=true */}
+      {!user && import.meta.env.VITE_SHOW_DEMO_BANNER === 'true' && (
         <div style={{ background: 'rgba(212,175,55,0.025)', borderBottom: '1px solid rgba(212,175,55,0.06)' }}>
           <p className="py-1.5 text-center text-[10px]" style={{ color: 'var(--text-muted)' }}>
             Demo ·{' '}

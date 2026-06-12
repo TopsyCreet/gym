@@ -13,8 +13,8 @@ type Tier = {
 const TIERS: Tier[] = [
   { min: 0,  color: '#3A3A3A', glow: 'transparent',           label: 'INITIATE',  next: 3,  nextLabel: 'Forged',   symbol: '○' },
   { min: 3,  color: '#CD853F', glow: 'rgba(205,133,63,0.28)', label: 'FORGED',    next: 7,  nextLabel: 'Vanguard', symbol: '◇' },
-  { min: 7,  color: '#4A90D9', glow: 'rgba(74,144,217,0.28)', label: 'VANGUARD',  next: 14, nextLabel: 'Elite',    symbol: '▸' },
-  { min: 14, color: '#2ECC71', glow: 'rgba(46,204,113,0.28)', label: 'ELITE',     next: 30, nextLabel: 'Prime',    symbol: '▲' },
+  { min: 7,  color: '#8A9BA8', glow: 'rgba(138,155,168,0.28)', label: 'VANGUARD',  next: 14, nextLabel: 'Elite',    symbol: '▸' },
+  { min: 14, color: '#C0A864', glow: 'rgba(192,168,100,0.28)', label: 'ELITE',     next: 30, nextLabel: 'Prime',    symbol: '▲' },
   { min: 30, color: '#D4AF37', glow: 'rgba(212,175,55,0.32)', label: 'PRIME',     next: 60, nextLabel: 'Monarch',  symbol: '◆' },
   { min: 60, color: '#E5C158', glow: 'rgba(229,193,88,0.35)', label: 'MONARCH',   next: 90, nextLabel: 'Legend',   symbol: '◆' },
 ];

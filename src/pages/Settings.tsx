@@ -12,7 +12,6 @@ import { useAuthStore } from '../store/authStore';
 import { supabase, supabaseConfigured } from '../lib/supabaseClient';
 import { uploadAvatar } from '../lib/uploadAvatar';
 import { gyms } from '../data/gyms';
-import mascotNeutral from '../assets/brand/mascot_neutral.png';
 
 export default function Settings() {
   const navigate   = useNavigate();
@@ -147,7 +146,6 @@ export default function Settings() {
             <h1 className="text-2xl font-black leading-tight text-white">Settings</h1>
           </div>
         </div>
-        <img src={mascotNeutral} alt="" aria-hidden="true" style={{ width: 72 }} />
       </div>
 
       {/* ── Profile section */}

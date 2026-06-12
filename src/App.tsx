@@ -48,14 +48,13 @@ function App() {
     <ErrorBoundary>
     <div className="min-h-screen bg-surface text-white">
       <Navbar />
-      {/* No AnimatePresence wrapper — avoids the "hold old page during exit" problem
-          where Routes re-renders the new page inside the fading-out container.
-          Each key change unmounts old immediately; new page fades in cleanly. */}
+      {/* No AnimatePresence — avoids stacking old/new page during exit animation.
+          Each key change unmounts old immediately; new page fades+slides in. */}
       <motion.main
         key={location.pathname}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.18 }}
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
         className="py-5"
         style={{ paddingBottom: showBottomNav ? 'calc(5rem + env(safe-area-inset-bottom))' : undefined }}
       >

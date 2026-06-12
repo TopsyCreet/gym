@@ -52,9 +52,9 @@ export default function AttendanceCalendar() {
           let iconColor = '#2A2A2A';
 
           if (attended && scheduled) {
-            bg = 'rgba(46,204,113,0.08)';
-            border = 'rgba(46,204,113,0.25)';
-            iconColor = '#2ECC71';
+            bg = 'rgba(212,160,23,0.08)';
+            border = 'rgba(212,160,23,0.25)';
+            iconColor = '#D4A017';
           } else if (attended && !scheduled) {
             bg = 'rgba(212,175,55,0.07)';
             border = 'rgba(212,175,55,0.2)';
@@ -98,7 +98,7 @@ export default function AttendanceCalendar() {
 
       <div className="mt-4 flex flex-wrap gap-4">
         {[
-          { color: '#2ECC71', label: 'Proved' },
+          { color: '#D4A017', label: 'Proved' },
           { color: '#E74C3C', label: 'Missed' },
           { color: '#D4AF37', label: 'Bonus' },
         ].map((l) => (

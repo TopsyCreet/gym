@@ -2,6 +2,8 @@ import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Home, Activity, Trophy, User } from 'lucide-react';
 
+const MotionLink = motion(Link);
+
 const tabs = [
   { href: '/dashboard',   label: 'Home',     Icon: Home },
   { href: '/progress',    label: 'Progress', Icon: Activity },
@@ -27,13 +29,14 @@ export default function BottomNav() {
         {tabs.map(({ href, label, Icon }) => {
           const active = pathname === href;
           return (
-            <Link
+            <MotionLink
               key={href}
               to={href}
-              className="relative flex flex-1 flex-col items-center justify-center gap-1.5 transition-colors"
+              whileTap={{ scale: 0.88 }}
+              transition={{ duration: 0.12, ease: [0.25, 0, 0.15, 1] }}
+              className="relative flex flex-1 flex-col items-center justify-center gap-1.5"
               style={{ minHeight: 58, paddingBlock: '0.875rem' }}
             >
-              {/* Active top indicator */}
               {active && (
                 <motion.span
                   layoutId="bottom-nav-indicator"
@@ -42,22 +45,21 @@ export default function BottomNav() {
                   transition={{ type: 'spring', stiffness: 500, damping: 38 }}
                 />
               )}
-
               <Icon
                 size={19}
                 strokeWidth={active ? 2.2 : 1.6}
                 style={{
                   color: active ? '#D4AF37' : 'var(--text-muted)',
-                  transition: 'color 0.18s, stroke-width 0.18s',
+                  transition: 'color 0.18s',
                 }}
               />
               <span
-                className="text-[9px] font-bold uppercase tracking-widest leading-none transition-colors"
-                style={{ color: active ? '#D4AF37' : 'var(--text-muted)' }}
+                className="text-[9px] font-bold uppercase tracking-widest leading-none"
+                style={{ color: active ? '#D4AF37' : 'var(--text-muted)', transition: 'color 0.18s' }}
               >
                 {label}
               </span>
-            </Link>
+            </MotionLink>
           );
         })}
       </div>

@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { supabase, supabaseConfigured } from '../lib/supabaseClient';
 import { uploadAvatar, uploadAvatarFromBase64 } from '../lib/uploadAvatar';
 import { dummyUsers } from '../data/dummyUsers';
-import { challenges } from '../data/challenges';
+import { getTodaysTrial } from '../content/trials';
 import { defaultWorkoutPlan, WorkoutType } from '../data/workoutPlans';
 import { gyms } from '../data/gyms';
 import { getLevelFromXp } from '../utils/xpCalculator';
@@ -100,16 +100,10 @@ function getRankTitleByCheckIns(checkIns: number): string {
   return title;
 }
 
-// Deterministic seeded shuffle — same 3 challenges for all users on the same day
-function generateDailySet(dateStr: string): DailyChallengeState[] {
-  let seed = 0;
-  for (let i = 0; i < dateStr.length; i++) seed = (seed * 31 + dateStr.charCodeAt(i)) | 0;
-  const ids = challenges.map((c) => c.id);
-  for (let i = ids.length - 1; i > 0; i--) {
-    seed = (seed * 1664525 + 1013904223) | 0;
-    [ids[i], ids[Math.abs(seed) % (i + 1)]] = [ids[Math.abs(seed) % (i + 1)], ids[i]];
-  }
-  return ids.slice(0, 3).map((id) => ({ id, completed: false }));
+// One deterministic trial per day — same for all users on the same date
+function generateDailySet(_dateStr: string): DailyChallengeState[] {
+  const trial = getTodaysTrial();
+  return [{ id: trial.id, completed: false }];
 }
 
 const generateAttendance = (days = 30) => {
@@ -146,7 +140,7 @@ const buildDemoUser = (): UserProfile => {
     checkIns,
     challengesCompleted: 28,
     attendanceHistory: history,
-    dailyChallenges: challenges.slice(0, 3).map((challenge) => ({ id: challenge.id, completed: false })),
+    dailyChallenges: [{ id: getTodaysTrial().id, completed: false }],
     freezeTokens: 2,
     achievements: ['first-checkin', 'seven-day-streak'],
     lastCheckInDate: new Date().toISOString().slice(0, 10),
@@ -175,7 +169,7 @@ const seedUsers = (): UserProfile[] => {
       checkIns: user.checkIns,
       challengesCompleted: user.challengesCompleted,
       attendanceHistory: user.history || generateAttendance(30),
-      dailyChallenges: challenges.slice(0, 3).map((challenge) => ({ id: challenge.id, completed: false })),
+      dailyChallenges: [{ id: getTodaysTrial().id, completed: false }],
       freezeTokens: Math.max(0, Math.floor(user.streak / 7)),
       achievements: ['first-checkin'],
       lastCheckInDate: undefined,
@@ -284,7 +278,14 @@ export const useAuthStore = create<AppState>((set, get) => ({
 
           // Restore today's trials from date-keyed localStorage (expires at midnight)
           const existing = get().users.find((u) => u.id === userId);
+          const todayStr = new Date().toISOString().slice(0, 10);
           mapped.dailyChallenges = loadDailyChallenges(userId) ?? [];
+          // If user checked in today but challenges are empty (e.g. after logout/re-login),
+          // generate deterministically so the "Generating…" state never sticks.
+          if (mapped.lastCheckInDate === todayStr && mapped.dailyChallenges.length === 0) {
+            mapped.dailyChallenges = generateDailySet(todayStr);
+            saveDailyChallenges(userId, mapped.dailyChallenges);
+          }
           // Preserve freezeTokens — not yet a Supabase column, falls back to localStorage value
           mapped.freezeTokens = (profile.freeze_tokens as number | null) ?? existing?.freezeTokens ?? 0;
           // Guard against stale Supabase snapshot overwriting fresher localStorage data.
@@ -425,6 +426,14 @@ export const useAuthStore = create<AppState>((set, get) => ({
       } else {
         // Avatar already set — clean up any stale pending entry
         try { localStorage.removeItem(`prime_pending_avatar_${userId}`); } catch {}
+      }
+
+      // Restore today's trials (same logic as init)
+      const loginToday = new Date().toISOString().slice(0, 10);
+      mapped.dailyChallenges = loadDailyChallenges(userId) ?? [];
+      if (mapped.lastCheckInDate === loginToday && mapped.dailyChallenges.length === 0) {
+        mapped.dailyChallenges = generateDailySet(loginToday);
+        saveDailyChallenges(userId, mapped.dailyChallenges);
       }
 
       set((s) => ({ users: [mapped, ...s.users.filter((u) => u.id !== mapped.id)], currentUserId: userId, error: null }));

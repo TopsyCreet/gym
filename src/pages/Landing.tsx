@@ -2,7 +2,6 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
 import logoPng from '../assets/brand/logo.png';
-import mascotHappy from '../assets/brand/mascot_happy.png';
 
 const up = (delay = 0) => ({
   initial: { opacity: 0, y: 24 },
@@ -13,8 +12,8 @@ const up = (delay = 0) => ({
 const ranks = [
   { name: 'Initiate', color: '#A1A1AA' },
   { name: 'Forged',   color: '#CD853F' },
-  { name: 'Vanguard', color: '#4A90D9' },
-  { name: 'Elite',    color: '#2ECC71' },
+  { name: 'Vanguard', color: '#8A9BA8' },
+  { name: 'Elite',    color: '#C0A864' },
   { name: 'Prime',    color: '#D4AF37' },
   { name: 'Monarch',  color: '#E5C158' },
 ];
@@ -35,13 +34,13 @@ const pillars = [
   {
     title: 'Gym Community',
     body: 'Compete within your gym each month. Pure consistency, no artificial scores. Give kudos to members who show up.',
-    color: '#2ECC71',
+    color: '#D4A017',
     symbol: '◇',
   },
   {
     title: 'Daily Trials',
     body: 'Three challenges rotate every day — strength, endurance, recovery. Completing them compounds the record beyond attendance alone.',
-    color: '#4A90D9',
+    color: '#8A9BA8',
     symbol: '⬡',
   },
 ];
@@ -79,14 +78,6 @@ export default function Landing() {
           </div>
         </motion.div>
 
-        {/* Mascot — peeking in from bottom-right of hero */}
-        <img
-          src={mascotHappy}
-          alt=""
-          aria-hidden="true"
-          className="pointer-events-none absolute bottom-0 right-4 sm:right-10 select-none"
-          style={{ width: 130, opacity: 0.88, transform: 'rotate(-6deg)' }}
-        />
 
         {/* Eyebrow */}
         <motion.div

@@ -7,8 +7,6 @@ import { useAuthStore } from '../store/authStore';
 import { useGymStore } from '../store/gymStore';
 import emptyStatePng from '../assets/brand/empty_state.png';
 import Ring, { WeeklyArc } from '../components/ui/Ring';
-import Mascot from '../components/ui/Mascot';
-import type { MascotState } from '../components/ui/Mascot';
 import StatCounter from '../components/ui/StatCounter';
 import Button from '../components/ui/Button';
 import RankBadge from '../components/RankBadge';
@@ -17,10 +15,15 @@ import CheckInModal from '../components/CheckInModal';
 import TrialSheet from '../components/TrialSheet';
 import GymFeedCard from '../components/GymFeedCard';
 import { getRankByTitle } from '../data/ranks';
+import { sessionFlag } from '../lib/sessionFlags';
 
-// ── Rank thresholds: check-in count evidence (spec Mechanic 2) ──────────
-// Auto-promotion to a new rankTitle requires a backend migration (pending).
-// These thresholds drive the progress bar and "next rank" evidence text only.
+// ── Constants ─────────────────────────────────────────────────────────────────
+const COMMITMENT_TIERS: Array<{ label: string; days: number; schedule: string[]; recommended?: boolean }> = [
+  { label: 'Foundation', days: 3, schedule: ['Mon', 'Wed', 'Fri'] },
+  { label: 'Standard',   days: 4, schedule: ['Mon', 'Tue', 'Thu', 'Sat'], recommended: true },
+  { label: 'Elite',      days: 5, schedule: ['Mon', 'Tue', 'Wed', 'Fri', 'Sat'] },
+];
+
 const RANK_THRESHOLDS = [
   { title: 'Initiate', minCheckIns: 0   },
   { title: 'Forged',   minCheckIns: 10  },
@@ -30,31 +33,30 @@ const RANK_THRESHOLDS = [
   { title: 'Monarch',  minCheckIns: 200 },
 ];
 
-// ── Daily insights — rotate every day (date % 3) ─────────────────────────
 const INSIGHTS = [
   {
     category: 'Consistency',
     title:    'The Compound Effect',
-    body:     'Session 1 and session 50 feel different. Early sessions build the habit; later ones reveal the identity. Show up for both.',
+    body:     "Session 1 and session 50 feel different. Early sessions build the habit; later ones reveal the identity. Show up for both.",
     color:    '#D4A017',
   },
   {
     category: 'Identity',
     title:    'You Are What You Repeat',
-    body:     'Every check-in is a vote for who you\'re becoming. The person with 100 sessions did not decide once — they decided 100 times.',
-    color:    '#3D7FD4',
+    body:     "Every check-in is a vote for who you're becoming. The person with 100 sessions did not decide once — they decided 100 times.",
+    color:    '#8A9BA8',
   },
   {
     category: 'Recovery',
     title:    'Rest Is Scheduled',
-    body:     'Skipping a non-scheduled day is not a miss — it\'s the plan. Recovery is part of the record. Honour it like any other session.',
-    color:    '#27AE60',
+    body:     "Skipping a non-scheduled day is not a miss — it's the plan. Recovery is part of the record. Honour it like any other session.",
+    color:    '#D4A017',
   },
 ] as const;
 
-// Pick today's insight via day-of-year so it changes daily, same for all users
+// ── Helpers ───────────────────────────────────────────────────────────────────
 function getDailyInsight() {
-  const now  = new Date();
+  const now   = new Date();
   const start = new Date(now.getFullYear(), 0, 0);
   const dayOfYear = Math.floor((now.getTime() - start.getTime()) / 86_400_000);
   return INSIGHTS[dayOfYear % INSIGHTS.length];
@@ -62,7 +64,6 @@ function getDailyInsight() {
 
 type WeeklyState = 'secured' | 'tight' | 'done' | 'pending';
 
-// ── Pure helpers ─────────────────────────────────────────────────────────
 function getGreeting(): string {
   const h = new Date().getHours();
   if (h < 12) return 'Good morning';
@@ -70,55 +71,39 @@ function getGreeting(): string {
   return 'Good evening';
 }
 
-function getTimePeriod(): 'morning' | 'afternoon' | 'evening' {
-  const h = new Date().getHours();
-  if (h < 12) return 'morning';
-  if (h < 17) return 'afternoon';
-  return 'evening';
-}
-
-function getMascotSpeechKey(period: 'morning' | 'afternoon' | 'evening', state: WeeklyState): string {
-  if (state === 'secured') return `${period}.weekSecured`;
-  if (state === 'tight')   return `${period}.tight`;
-  if (state === 'done')    return `${period}.done`;
-  return `${period}.pending`;
-}
-
 function getSubLine(state: WeeklyState, checkInsLeft: number, daysLeft: number): string {
   if (state === 'secured') return 'Week secured. Rest is part of discipline.';
   if (state === 'tight')
-    return `${checkInsLeft} session${checkInsLeft !== 1 ? 's' : ''} left — ${daysLeft} day${daysLeft !== 1 ? 's' : ''} to go. Make it count.`;
+    return `${checkInsLeft} session${checkInsLeft !== 1 ? 's' : ''} left — ${daysLeft} day${daysLeft !== 1 ? 's' : ''} to go.`;
   if (state === 'done') return 'Proved today. The record grows.';
   if (checkInsLeft > 0)
     return `${checkInsLeft} check-in${checkInsLeft !== 1 ? 's' : ''} to close your week.`;
-  return 'Your week is yours to define.';
+  return "Showed up. Most didn't.";
 }
 
-// ── Component ─────────────────────────────────────────────────────────────
+// ── Component ─────────────────────────────────────────────────────────────────
 export default function Dashboard() {
-  const user          = useAuthStore((s) => s.getUser());
-  const openCheckIn   = useGymStore((s) => s.openCheckInModal);
+  const user        = useAuthStore((s) => s.getUser());
+  const updateUser  = useAuthStore((s) => s.updateUser);
+  const openCheckIn = useGymStore((s) => s.openCheckInDirect);
 
-  const containerRef      = useRef<HTMLDivElement>(null);
-  const ringHeroRef       = useRef<HTMLDivElement>(null);
-  const celebrationTlRef  = useRef<gsap.core.Timeline | null>(null);
-  const mascotTimerRef    = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const toastShownRef     = useRef(false);
+  const containerRef     = useRef<HTMLDivElement>(null);
+  const ringHeroRef      = useRef<HTMLDivElement>(null);
+  const celebrationTlRef = useRef<gsap.core.Timeline | null>(null);
+  const toastShownRef    = useRef(false);
 
-  const [mascotOverride, setMascotOverride] = useState<MascotState | undefined>(undefined);
-  const [toast, setToast]                   = useState<string | null>(null);
-  const [openTrialId, setOpenTrialId]       = useState<number | null>(null);
+  const [toast, setToast]             = useState<string | null>(null);
+  const [openTrialId, setOpenTrialId] = useState<number | null>(null);
 
   const today          = new Date().toISOString().slice(0, 10);
   const checkedInToday = user?.lastCheckInDate === today;
   const firstName      = user?.name.split(' ')[0] ?? '';
-  const timePeriod     = getTimePeriod();
 
-  // ── Weekly progress ───────────────────────────────────────────────────
+  // ── Weekly progress ──────────────────────────────────────────────────────
   const weeklyDone = useMemo(() => {
     if (!user) return 0;
     const now = new Date();
-    const daysSinceMonday = (now.getDay() + 6) % 7; // Mon=0 … Sun=6
+    const daysSinceMonday = (now.getDay() + 6) % 7;
     let count = 0;
     for (let i = daysSinceMonday; i >= 0; i--) {
       const d = new Date(now);
@@ -131,12 +116,10 @@ export default function Dashboard() {
   const weeklyTarget   = user?.schedule.length ?? 0;
   const weeklyProgress = weeklyTarget > 0 ? Math.min(1, weeklyDone / weeklyTarget) : 0;
 
-  // Days remaining this week (today = Mon → 6 remaining, Sun → 0)
   const daysRemainingInWeek = (() => {
-    const day = new Date().getDay(); // 0=Sun
+    const day = new Date().getDay();
     return day === 0 ? 0 : 7 - day;
   })();
-
   const checkInsLeft = Math.max(0, weeklyTarget - weeklyDone);
 
   const weeklyState: WeeklyState = (() => {
@@ -146,29 +129,26 @@ export default function Dashboard() {
     return 'pending';
   })();
 
-  // ── Ring progress values ──────────────────────────────────────────────
+  // ── Ring progress ────────────────────────────────────────────────────────
   const trialProgress = useMemo(() => {
     if (!user || user.dailyChallenges.length === 0) return 0;
     return user.dailyChallenges.filter((c) => c.completed).length / user.dailyChallenges.length;
   }, [user]);
 
   const checkInProgress = checkedInToday ? 1 : 0;
-  const completedCount  = user?.dailyChallenges.filter((c) => c.completed).length ?? 0;
+  const trialCleared    = user?.dailyChallenges[0]?.completed ?? false;
 
-  // ── Rank evidence ─────────────────────────────────────────────────────
-  const rankDef        = getRankByTitle(user?.rankTitle ?? 'Initiate');
-  const rankIdx        = Math.max(0, RANK_THRESHOLDS.findIndex((r) => r.title === (user?.rankTitle ?? 'Initiate')));
-  const nextRankDef    = RANK_THRESHOLDS[rankIdx + 1] ?? null;
-  const curThreshold   = RANK_THRESHOLDS[rankIdx]?.minCheckIns ?? 0;
-  const nextThreshold  = nextRankDef?.minCheckIns ?? curThreshold;
-  const rankProgress   = nextRankDef && nextThreshold > curThreshold
+  // ── Rank progress ────────────────────────────────────────────────────────
+  const rankDef       = getRankByTitle(user?.rankTitle ?? 'Initiate');
+  const rankIdx       = Math.max(0, RANK_THRESHOLDS.findIndex((r) => r.title === (user?.rankTitle ?? 'Initiate')));
+  const nextRankEntry = RANK_THRESHOLDS[rankIdx + 1] ?? null;
+  const curThreshold  = RANK_THRESHOLDS[rankIdx]?.minCheckIns ?? 0;
+  const nextThreshold = nextRankEntry?.minCheckIns ?? curThreshold;
+  const rankProgress  = nextRankEntry && nextThreshold > curThreshold
     ? Math.min(1, Math.max(0, ((user?.checkIns ?? 0) - curThreshold) / (nextThreshold - curThreshold)))
     : 1;
 
-  // ── Mascot speech ─────────────────────────────────────────────────────
-  const speechKey = getMascotSpeechKey(timePeriod, weeklyState);
-
-  // ── Tight-week toast (shown once per session) ─────────────────────────
+  // ── Tight-week toast ─────────────────────────────────────────────────────
   useEffect(() => {
     if (toastShownRef.current || checkedInToday) return;
     if (weeklyState === 'tight') {
@@ -177,32 +157,23 @@ export default function Dashboard() {
     }
   }, [weeklyState, checkedInToday, checkInsLeft, daysRemainingInWeek]);
 
-  // ── GSAP: card stagger entrance ───────────────────────────────────────
+  // ── GSAP: card stagger entrance — first mount only per session ───────────
   useGSAP(() => {
-    if (!containerRef.current) return;
+    if (!containerRef.current || sessionFlag.check('stagger:dashboard')) return;
+    sessionFlag.set('stagger:dashboard');
     const cards = containerRef.current.querySelectorAll('[data-card]');
     gsap.from(cards, {
-      opacity: 0,
-      y: 12,
-      duration: 0.4,
-      stagger: 0.07,
-      ease: 'power2.out',
-      clearProps: 'all',
+      opacity: 0, y: 12, duration: 0.4, stagger: 0.06,
+      ease: 'power2.out', clearProps: 'all',
     });
   }, { scope: containerRef });
 
-  // ── Cleanup on unmount ────────────────────────────────────────────────
-  useEffect(() => () => {
-    if (mascotTimerRef.current) clearTimeout(mascotTimerRef.current);
-    celebrationTlRef.current?.kill();
-  }, []);
+  useEffect(() => () => { celebrationTlRef.current?.kill(); }, []);
 
-  // ── Check-in celebration (fires only when ring fills mid-session) ─────
+  // ── Check-in ring celebration ────────────────────────────────────────────
   const handleRingComplete = useCallback(() => {
-    // Haptic
     if ('vibrate' in navigator) navigator.vibrate([60, 20, 80]);
 
-    // Ring pulse (GSAP)
     if (ringHeroRef.current) {
       const tl = gsap.timeline();
       celebrationTlRef.current = tl;
@@ -210,14 +181,12 @@ export default function Dashboard() {
         .to(ringHeroRef.current, { scale: 1, duration: 0.35, ease: 'back.out(1.7)' });
     }
 
-    // Gold particle burst — appended to body so card overflow:hidden doesn't clip them
     if (ringHeroRef.current) {
       const rect = ringHeroRef.current.getBoundingClientRect();
       const cx   = rect.left + rect.width  / 2;
       const cy   = rect.top  + rect.height / 2;
       const N    = 10;
       const particles: HTMLDivElement[] = [];
-
       for (let i = 0; i < N; i++) {
         const size = 6 + (i % 3) * 2;
         const el   = document.createElement('div');
@@ -232,35 +201,26 @@ export default function Dashboard() {
         document.body.appendChild(el);
         particles.push(el);
       }
-
       const ptl = gsap.timeline({ onComplete: () => particles.forEach((p) => p.remove()) });
       particles.forEach((p, i) => {
         const angle = (i / N) * Math.PI * 2 + (Math.random() - 0.5) * 0.5;
         const dist  = 70 + Math.random() * 60;
         ptl.to(p, {
-          x: Math.cos(angle) * dist,
-          y: Math.sin(angle) * dist,
-          opacity: 0, scale: 0,
-          duration: 0.9, ease: 'power2.out',
+          x: Math.cos(angle) * dist, y: Math.sin(angle) * dist,
+          opacity: 0, scale: 0, duration: 0.9, ease: 'power2.out',
         }, 0);
       });
     }
-
-    // Mascot celebrating → auto-reset
-    if (mascotTimerRef.current) clearTimeout(mascotTimerRef.current);
-    setMascotOverride('celebrating');
-    mascotTimerRef.current = setTimeout(() => setMascotOverride(undefined), 3200);
   }, []);
 
-  // ── Guard ─────────────────────────────────────────────────────────────
   if (!user) return null;
 
   const dailyInsight = getDailyInsight();
 
   return (
-    <div ref={containerRef} className="mx-auto max-w-2xl space-y-4 px-4 py-5 sm:px-6 pb-24">
+    <div ref={containerRef} className="mx-auto max-w-2xl space-y-3 px-4 py-4 sm:px-6 pb-24">
 
-      {/* ── Tight-week toast ──────────────────────────────────────────── */}
+      {/* ── Tight-week toast ─────────────────────────────────────────────── */}
       <AnimatePresence>
         {toast && (
           <motion.div
@@ -282,7 +242,11 @@ export default function Dashboard() {
               onClick={() => setToast(null)}
               aria-label="Dismiss"
               className="focus-ring"
-              style={{ color: 'var(--text-faint)', padding: 4, minHeight: 44, minWidth: 44, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              style={{
+                color: 'var(--text-faint)', padding: 4,
+                minHeight: 44, minWidth: 44,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}
             >
               <X size={13} />
             </button>
@@ -290,115 +254,90 @@ export default function Dashboard() {
         )}
       </AnimatePresence>
 
-      {/* ── Greeting strip ────────────────────────────────────────────── */}
-      <div className="flex items-start justify-between gap-4 px-1" data-card>
-        <div className="min-w-0">
-          <p className="text-sm font-medium" style={{ color: 'var(--text-faint)' }}>
+      {/* ── ONE Hero Card: greeting + ring + stats + CTA ────────────────── */}
+      <div className="card-hero p-4 sm:p-6" data-card>
+
+        {/* Greeting — compact, no avatar */}
+        <div className="mb-3">
+          <p className="text-xs font-medium" style={{ color: 'var(--text-faint)' }}>
             {getGreeting()},
           </p>
-          <h1 className="mt-0.5 text-display font-black leading-none tracking-tight text-white truncate">
-            {firstName}
-          </h1>
-          <div className="mt-2.5">
+          <div className="flex items-center gap-2.5 mt-0.5 flex-wrap">
+            <h1 className="text-display font-black leading-none tracking-tight text-white">
+              {firstName}
+            </h1>
             <RankBadge title={user.rankTitle} size="sm" />
           </div>
-          <p className="mt-2 text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
+          <p className="mt-1.5 text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
             {getSubLine(weeklyState, checkInsLeft, daysRemainingInWeek)}
           </p>
         </div>
 
-        {user.avatar ? (
-          <img
-            src={user.avatar}
-            alt={user.name}
-            className="shrink-0 rounded-2xl object-cover"
-            style={{ width: 52, height: 52, border: '1px solid rgba(212,160,23,0.22)' }}
+        {/* Ring — centred */}
+        <div ref={ringHeroRef} className="flex justify-center my-2">
+          <Ring
+            checkIn={checkInProgress}
+            trial={trialProgress}
+            weekly={weeklyProgress}
+            size={200}
+            shieldActive={user.freezeTokens > 0}
+            onCheckInComplete={handleRingComplete}
           />
-        ) : (
-          <div
-            className="shrink-0 flex items-center justify-center rounded-2xl text-lg font-black text-black"
-            style={{ width: 52, height: 52, background: 'linear-gradient(145deg, var(--gold-light), var(--gold))' }}
-            aria-hidden="true"
-          >
-            {firstName.charAt(0)}
-          </div>
-        )}
-      </div>
+        </div>
 
-      {/* ── Hero Ring Card ────────────────────────────────────────────── */}
-      <div className="card-hero p-6 sm:p-8" data-card>
-
-        <div className="flex flex-col sm:flex-row items-center gap-6">
-          {/* Rings */}
-          <div ref={ringHeroRef} className="shrink-0">
-            <Ring
-              checkIn={checkInProgress}
-              trial={trialProgress}
-              weekly={weeklyProgress}
-              size={220}
-              shieldActive={user.freezeTokens > 0}
-              onCheckInComplete={handleRingComplete}
-            />
+        {/* Streak + ring legend */}
+        <div className="flex items-end justify-between gap-4 mt-3">
+          <div>
+            <p className="label">Days Unbroken</p>
+            <p
+              className="mt-0.5 leading-none"
+              style={{
+                fontFamily: 'Inter, system-ui, sans-serif',
+                fontSize: 'clamp(2.25rem, 8vw, 3.25rem)',
+                fontWeight: 900,
+                fontVariantNumeric: 'tabular-nums',
+                color: user.streak > 0 ? 'var(--gold)' : 'var(--text-faint)',
+              }}
+              aria-label={`${user.streak} day streak`}
+            >
+              <StatCounter value={user.streak} />
+            </p>
           </div>
 
-          {/* Right column: mascot + streak */}
-          <div className="flex-1 flex flex-col items-center gap-4 w-full">
-            <Mascot
-              override={mascotOverride}
-              size={180}
-              speechKey={speechKey}
-              waveOnMount
-            />
-
-            <div className="text-center">
-              <p className="label">Days Unbroken</p>
-              <p
-                className="mt-0.5 tabular-nums leading-none"
-                style={{
-                  fontFamily: 'Space Grotesk, system-ui, sans-serif',
-                  fontSize: 'clamp(3rem, 10vw, 4.5rem)',
-                  fontWeight: 900,
-                  color: user.streak > 0 ? 'var(--gold)' : 'var(--text-faint)',
-                }}
-                aria-label={`${user.streak} day streak`}
-              >
-                {user.streak}
-              </p>
-
-              {/* Streak shields */}
-              {user.freezeTokens > 0 && (
-                <div className="mt-2 flex items-center justify-center gap-1.5" role="list" aria-label="Streak shields banked">
-                  {Array.from({ length: Math.min(user.freezeTokens, 2) }).map((_, i) => (
-                    <span
-                      key={i}
-                      role="listitem"
-                      className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide"
-                      style={{
-                        background: 'rgba(61,127,212,0.1)',
-                        border: '1px solid rgba(61,127,212,0.25)',
-                        color: 'var(--steel)',
-                      }}
-                    >
-                      <Shield size={9} aria-hidden="true" />
-                      Shield
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Ring legend */}
-            <div className="flex items-center gap-4 text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-faint)' }}>
+          <div className="flex flex-col items-end gap-1.5 pb-1">
+            {user.freezeTokens > 0 && (
+              <div className="flex items-center gap-1" role="list" aria-label="Streak shields">
+                {Array.from({ length: Math.min(user.freezeTokens, 2) }).map((_, i) => (
+                  <span
+                    key={i}
+                    role="listitem"
+                    className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide"
+                    style={{
+                      background: 'rgba(138,155,168,0.1)',
+                      border: '1px solid rgba(138,155,168,0.25)',
+                      color: 'var(--steel)',
+                    }}
+                  >
+                    <Shield size={9} aria-hidden="true" />
+                    Shield
+                  </span>
+                ))}
+              </div>
+            )}
+            <div
+              className="flex items-center gap-3 text-[9px] font-bold uppercase tracking-wider"
+              style={{ color: 'var(--text-faint)' }}
+            >
               <span className="flex items-center gap-1">
-                <span className="inline-block w-2 h-2 rounded-full" style={{ background: 'var(--gold)' }} aria-hidden="true" />
+                <span className="inline-block w-2 h-2 rounded-full" style={{ background: 'var(--gold)' }} />
                 Check-in
               </span>
               <span className="flex items-center gap-1">
-                <span className="inline-block w-2 h-2 rounded-full" style={{ background: 'var(--steel)' }} aria-hidden="true" />
-                Trials
+                <span className="inline-block w-2 h-2 rounded-full" style={{ background: 'var(--steel)' }} />
+                Trial
               </span>
               <span className="flex items-center gap-1">
-                <span className="inline-block w-2 h-2 rounded-full" style={{ background: 'var(--success)' }} aria-hidden="true" />
+                <span className="inline-block w-2 h-2 rounded-full" style={{ background: 'var(--gold-muted)' }} />
                 Week
               </span>
             </div>
@@ -406,7 +345,7 @@ export default function Dashboard() {
         </div>
 
         {/* Weekly arc */}
-        <div className="mt-6">
+        <div className="mt-3">
           <WeeklyArc
             progress={weeklyProgress}
             weeklyDone={weeklyDone}
@@ -415,14 +354,14 @@ export default function Dashboard() {
         </div>
 
         {/* Primary CTA */}
-        <div className="mt-5">
+        <div className="mt-4">
           {checkedInToday ? (
             <div
               className="inline-flex items-center gap-2.5 rounded-full px-5 py-2.5"
-              style={{ background: 'rgba(39,174,96,0.08)', border: '1px solid rgba(39,174,96,0.2)' }}
+              style={{ background: 'var(--bg-overlay-3)', border: '1px solid rgba(212,160,23,0.2)' }}
             >
-              <CheckCircle size={14} style={{ color: 'var(--success)' }} aria-hidden="true" />
-              <span className="text-sm font-bold uppercase tracking-wider" style={{ color: 'var(--success)' }}>
+              <CheckCircle size={14} style={{ color: 'var(--gold)' }} aria-hidden="true" />
+              <span className="text-sm font-bold uppercase tracking-wider" style={{ color: 'var(--gold)' }}>
                 Committed Today
               </span>
             </div>
@@ -430,20 +369,51 @@ export default function Dashboard() {
             <Button
               variant="primary"
               onClick={openCheckIn}
-              className="w-full sm:w-auto"
-              aria-label="Open check-in verification"
+              className="w-full"
+              style={{ minHeight: 56, fontSize: '0.9375rem', letterSpacing: '0.05em' }}
+              aria-label="Start gym check-in"
             >
-              Prove Today
-              <ArrowRight size={14} aria-hidden="true" />
+              Check In
+              <ArrowRight size={15} aria-hidden="true" />
             </Button>
           )}
         </div>
       </div>
 
-      {/* ── Bento grid: sessions + rank ───────────────────────────────── */}
-      <div className="grid grid-cols-2 gap-4">
+      {/* ── Set weekly commitment (no schedule yet) ──────────────────────── */}
+      {weeklyTarget === 0 && (
+        <div className="card p-5" data-card>
+          <p className="label mb-1">Set Weekly Commitment</p>
+          <p className="mt-1 text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>
+            How many days per week will you train? This activates your weekly ring.
+          </p>
+          <div className="grid grid-cols-3 gap-3">
+            {COMMITMENT_TIERS.map((tier) => (
+              <button
+                key={tier.label}
+                type="button"
+                onClick={() => updateUser({ ...user, schedule: [...tier.schedule] })}
+                className="rounded-2xl p-4 text-left transition-colors"
+                style={{ background: 'var(--bg-overlay-1)', border: '1px solid var(--border-subtle)' }}
+              >
+                <p className="text-xl font-black text-white">{tier.days}×</p>
+                <p className="label mt-0.5">{tier.label}</p>
+                {tier.recommended && (
+                  <span
+                    className="mt-1.5 inline-block text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full"
+                    style={{ background: 'var(--gold-faint)', color: 'var(--gold)' }}
+                  >
+                    Recommended
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
-        {/* Sessions logged */}
+      {/* ── Bento: sessions + rank ────────────────────────────────────────── */}
+      <div className="grid grid-cols-2 gap-3">
         <div className="card p-5" data-card>
           <p className="label">Sessions Logged</p>
           <p className="mt-2 text-3xl font-black text-white">
@@ -453,12 +423,8 @@ export default function Dashboard() {
               className="tabular-nums"
             />
           </p>
-          <p className="mt-0.5 text-xs" style={{ color: 'var(--text-faint)' }}>
-            verified check-ins
-          </p>
-
+          <p className="mt-0.5 text-xs" style={{ color: 'var(--text-faint)' }}>verified check-ins</p>
           <div className="divider my-3" />
-
           <p className="label">Longest Run</p>
           <p className="mt-1 text-xl font-black text-white tabular-nums">
             {user.longestStreak}
@@ -466,24 +432,21 @@ export default function Dashboard() {
           </p>
         </div>
 
-        {/* Rank evidence */}
         <div className="card p-5 flex flex-col" data-card>
           <p className="label mb-2.5">Your Rank</p>
           <RankBadge title={user.rankTitle} size="sm" />
-
           <p
             className="mt-2.5 text-xs leading-relaxed line-clamp-3"
             style={{ color: 'var(--text-faint)', fontSize: '0.6875rem' }}
           >
             {rankDef.manifesto}
           </p>
-
-          {nextRankDef && (
+          {nextRankEntry && (
             <div className="mt-auto pt-3">
               <div className="flex items-center justify-between mb-1.5">
-                <p className="label">→ {nextRankDef.title}</p>
+                <p className="label">→ {nextRankEntry.title}</p>
                 <p className="label" style={{ color: rankDef.color }}>
-                  {user.checkIns}/{nextRankDef.minCheckIns}
+                  {user.checkIns}/{nextRankEntry.minCheckIns}
                 </p>
               </div>
               <div
@@ -493,7 +456,6 @@ export default function Dashboard() {
                 aria-valuenow={user.checkIns}
                 aria-valuemin={curThreshold}
                 aria-valuemax={nextThreshold}
-                aria-label={`${user.checkIns} of ${nextThreshold} check-ins toward ${nextRankDef.title}`}
               >
                 <motion.div
                   initial={{ width: 0 }}
@@ -508,28 +470,28 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* ── Today's Trials ────────────────────────────────────────────── */}
+      {/* ── Today's Trial ─────────────────────────────────────────────────── */}
       <div className="card p-5" data-card>
         <div className="flex items-start justify-between gap-4 mb-4">
           <div>
-            <p className="label">Today's Trials</p>
+            <p className="label">Today's Trial</p>
             {checkedInToday && (
               <h2 className="mt-1 text-lg font-black text-white">
-                {completedCount === 3 ? 'All Cleared' : `${completedCount} of 3 Done`}
+                {trialCleared ? 'Cleared' : 'Active'}
               </h2>
             )}
           </div>
           {checkedInToday && (
             <span
-              className="shrink-0 rounded-full px-3 py-1 text-xs font-bold tabular-nums"
+              className="shrink-0 rounded-full px-3 py-1 text-xs font-bold"
               style={
-                completedCount === 3
-                  ? { background: 'rgba(39,174,96,0.08)', border: '1px solid rgba(39,174,96,0.2)', color: 'var(--success)' }
-                  : { background: 'var(--gold-faint)', border: '1px solid rgba(212,160,23,0.22)', color: 'var(--gold)' }
+                trialCleared
+                  ? { background: 'var(--gold-faint)', border: '1px solid rgba(212,160,23,0.22)', color: 'var(--gold)' }
+                  : { background: 'var(--bg-overlay-2)', border: '1px solid var(--border-faint)', color: 'var(--text-secondary)' }
               }
-              aria-label={`${completedCount} of 3 trials complete`}
+              aria-label={trialCleared ? 'Trial cleared' : 'Trial pending'}
             >
-              {completedCount}/3
+              {trialCleared ? '✓' : '—'}
             </span>
           )}
         </div>
@@ -539,29 +501,32 @@ export default function Dashboard() {
             className="flex flex-col items-center rounded-2xl py-8 text-center"
             style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)' }}
           >
-            <img src={emptyStatePng} alt="" className="mb-4 h-20 w-20 object-contain opacity-60" aria-hidden="true" />
-            <p className="text-sm font-semibold text-white">Trials unlock after check-in.</p>
-            <p className="mt-1 text-xs" style={{ color: 'var(--text-faint)' }}>
-              Prove your presence first.
-            </p>
+            <img
+              src={emptyStatePng}
+              alt=""
+              className="mb-4 h-20 w-20 object-contain opacity-60"
+              aria-hidden="true"
+            />
+            <p className="text-sm font-semibold text-white">Trial unlocks after check-in.</p>
+            <p className="mt-1 text-xs" style={{ color: 'var(--text-faint)' }}>Prove your presence first.</p>
           </div>
         ) : user.dailyChallenges.length > 0 ? (
-          <div className="grid gap-3 sm:grid-cols-3">
-            {user.dailyChallenges.map((c) => (
-              <ChallengeCard key={c.id} id={c.id} completed={c.completed} onOpen={() => setOpenTrialId(c.id)} />
-            ))}
-          </div>
+          <ChallengeCard
+            id={user.dailyChallenges[0].id}
+            completed={user.dailyChallenges[0].completed}
+            onOpen={() => setOpenTrialId(user.dailyChallenges[0].id)}
+          />
         ) : (
           <div
             className="rounded-2xl py-8 text-center"
             style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)' }}
           >
-            <p className="text-sm font-semibold text-white">Generating today's trials…</p>
+            <p className="text-sm font-semibold text-white">Generating today's trial…</p>
           </div>
         )}
       </div>
 
-      {/* ── Daily Insight ─────────────────────────────────────────────── */}
+      {/* ── Daily Insight ─────────────────────────────────────────────────── */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -570,7 +535,6 @@ export default function Dashboard() {
         data-card
         style={{ borderLeft: `3px solid ${dailyInsight.color}` }}
       >
-        {/* Ambient color wash — very subtle */}
         <div
           aria-hidden="true"
           className="pointer-events-none absolute inset-0"
@@ -592,7 +556,7 @@ export default function Dashboard() {
         </div>
       </motion.div>
 
-      {/* ── Gym Community ─────────────────────────────────────────────── */}
+      {/* ── Gym Community Feed ────────────────────────────────────────────── */}
       <GymFeedCard />
 
       <TrialSheet trialId={openTrialId} onClose={() => setOpenTrialId(null)} />

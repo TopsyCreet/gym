@@ -131,6 +131,7 @@ export default function Mascot({
   suppressIdle = false,
   waveOnMount = false,
 }: MascotProps) {
+  if (import.meta.env.VITE_MASCOT_ENABLED !== 'true') return null;
   const mascotState = useMascotState(override);
   const [displayState, setDisplayState] = useState<MascotState>(mascotState);
   // waveComplete gates the idle loop — starts false only when waveOnMount is true

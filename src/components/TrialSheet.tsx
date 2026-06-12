@@ -2,20 +2,20 @@ import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  X, CheckCircle2,
+  X, CheckCircle2, CheckCircle,
   Dumbbell, Timer, Footprints, Wind, PersonStanding, BarChart2,
 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { challenges } from '../data/challenges';
-import mascotCelebrating from '../assets/brand/mascot_celebrating.png';
+import { trials } from '../content/trials';
 
 const categoryConfig: Record<string, { icon: React.ElementType; color: string }> = {
   strength:    { icon: Dumbbell,       color: '#D4A017' },
-  endurance:   { icon: Footprints,     color: '#27AE60' },
+  endurance:   { icon: Footprints,     color: '#8A9BA8' },
   core:        { icon: PersonStanding, color: '#A1A1AA' },
-  cardio:      { icon: Timer,          color: '#3D7FD4' },
+  cardio:      { icon: Timer,          color: '#8A9BA8' },
   legs:        { icon: BarChart2,      color: '#CD853F' },
-  recovery:    { icon: Wind,           color: '#5BB8A0' },
+  recovery:    { icon: Wind,           color: '#8A9BA8' },
   flexibility: { icon: PersonStanding, color: '#A1A1AA' },
   functional:  { icon: Dumbbell,       color: '#D4A017' },
 };
@@ -24,11 +24,7 @@ const getCategory = (cat: string) =>
   categoryConfig[cat.toLowerCase()] ?? { icon: Dumbbell, color: '#D4A017' };
 
 type Stage = 'detail' | 'done';
-
-interface TrialSheetProps {
-  trialId: number | null;
-  onClose: () => void;
-}
+interface TrialSheetProps { trialId: number | null; onClose: () => void; }
 
 export default function TrialSheet({ trialId, onClose }: TrialSheetProps) {
   const completeChallenge = useAuthStore((state) => state.completeChallenge);
@@ -36,32 +32,31 @@ export default function TrialSheet({ trialId, onClose }: TrialSheetProps) {
   const [stage, setStage] = useState<Stage>('detail');
   const closeTimerRef     = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Reset to detail view each time a new trial opens
   useEffect(() => {
     if (trialId !== null) setStage('detail');
-    return () => {
-      if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
-    };
+    return () => { if (closeTimerRef.current) clearTimeout(closeTimerRef.current); };
   }, [trialId]);
 
-  // Lock body scroll while open
   useEffect(() => {
-    if (trialId !== null) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
+    if (trialId !== null) document.body.style.overflow = 'hidden';
+    else document.body.style.overflow = '';
     return () => { document.body.style.overflow = ''; };
   }, [trialId]);
 
-  const challenge   = challenges.find((c) => c.id === trialId);
+  // Resolve data from either trials.ts (id >= 1001) or legacy challenges
+  const isNewTrial = (trialId ?? 0) >= 1001;
+  const trial      = isNewTrial ? trials.find((t) => t.id === trialId) : null;
+  const challenge  = !isNewTrial ? challenges.find((c) => c.id === trialId) : null;
+
+  const hasContent  = isNewTrial ? !!trial : !!challenge;
   const today       = new Date().toISOString().slice(0, 10);
   const checkedIn   = user?.lastCheckInDate === today;
   const isCompleted = user?.dailyChallenges.find((c) => c.id === trialId)?.completed ?? false;
 
   const handleComplete = () => {
-    if (!challenge) return;
-    completeChallenge(challenge.id, challenge.xp);
+    if (!trialId) return;
+    const xp = isNewTrial ? (trial?.xp ?? 100) : (challenge?.xp ?? 100);
+    completeChallenge(trialId, xp);
     setStage('done');
     closeTimerRef.current = setTimeout(onClose, 2000);
   };
@@ -71,9 +66,8 @@ export default function TrialSheet({ trialId, onClose }: TrialSheetProps) {
 
   return createPortal(
     <AnimatePresence>
-      {trialId !== null && challenge && (
+      {trialId !== null && hasContent && (
         <>
-          {/* Rendered via portal into document.body — escapes motion.main stacking context */}
           <motion.div
             key="trial-overlay"
             initial={{ opacity: 0 }}
@@ -86,7 +80,6 @@ export default function TrialSheet({ trialId, onClose }: TrialSheetProps) {
             aria-hidden="true"
           />
 
-          {/* Panel — above overlay and above BottomNav */}
           <motion.div
             key="trial-panel"
             initial={{ y: '100%' }}
@@ -102,14 +95,11 @@ export default function TrialSheet({ trialId, onClose }: TrialSheetProps) {
             }}
             role="dialog"
             aria-modal="true"
-            aria-label={`Trial: ${challenge.name}`}
+            aria-label={`Trial: ${isNewTrial ? trial?.text : challenge?.name}`}
           >
             {/* Drag handle */}
             <div className="flex justify-center pt-3.5 pb-1" aria-hidden="true">
-              <div
-                className="h-1 w-10 rounded-full"
-                style={{ background: 'rgba(255,255,255,0.12)' }}
-              />
+              <div className="h-1 w-10 rounded-full" style={{ background: 'rgba(255,255,255,0.12)' }} />
             </div>
 
             {/* Close button */}
@@ -128,9 +118,7 @@ export default function TrialSheet({ trialId, onClose }: TrialSheetProps) {
               <X size={14} />
             </button>
 
-            {/* Stage content */}
             <AnimatePresence mode="wait">
-
               {/* ── Detail stage */}
               {stage === 'detail' && (
                 <motion.div
@@ -141,34 +129,36 @@ export default function TrialSheet({ trialId, onClose }: TrialSheetProps) {
                   transition={{ duration: 0.14 }}
                   className="px-6 pt-5 pb-4"
                 >
-                  {/* Category icon */}
-                  <div
-                    className="flex h-12 w-12 items-center justify-center rounded-2xl"
-                    style={{
-                      background: `${cfg!.color}12`,
-                      border: `1px solid ${cfg!.color}22`,
-                    }}
-                  >
-                    <Icon size={22} style={{ color: cfg!.color }} aria-hidden="true" />
-                  </div>
-
-                  <p
-                    className="label mt-4 tracking-[0.22em]"
-                    style={{ color: cfg!.color }}
-                  >
-                    {challenge.category}
-                  </p>
-
-                  <h2 className="mt-1.5 text-2xl font-black leading-tight text-white">
-                    {challenge.name}
-                  </h2>
-
-                  <p
-                    className="mt-4 text-sm leading-relaxed"
-                    style={{ color: 'var(--text-secondary)' }}
-                  >
-                    {challenge.description}
-                  </p>
+                  {isNewTrial ? (
+                    /* New-style daily trial — text only */
+                    <>
+                      <p className="label tracking-[0.22em] mb-3" style={{ color: 'var(--gold)' }}>
+                        Today's Trial
+                      </p>
+                      <p className="text-xl font-black leading-snug text-white">
+                        {trial!.text}
+                      </p>
+                    </>
+                  ) : (
+                    /* Legacy challenge — icon + category + description */
+                    <>
+                      <div
+                        className="flex h-12 w-12 items-center justify-center rounded-2xl"
+                        style={{ background: `${cfg!.color}12`, border: `1px solid ${cfg!.color}22` }}
+                      >
+                        <Icon size={22} style={{ color: cfg!.color }} aria-hidden="true" />
+                      </div>
+                      <p className="label mt-4 tracking-[0.22em]" style={{ color: cfg!.color }}>
+                        {challenge!.category}
+                      </p>
+                      <h2 className="mt-1.5 text-2xl font-black leading-tight text-white">
+                        {challenge!.name}
+                      </h2>
+                      <p className="mt-4 text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                        {challenge!.description}
+                      </p>
+                    </>
+                  )}
 
                   <div className="divider mt-6 mb-5" />
 
@@ -176,39 +166,23 @@ export default function TrialSheet({ trialId, onClose }: TrialSheetProps) {
                   {isCompleted ? (
                     <div
                       className="flex w-full items-center justify-center gap-2.5 rounded-full py-3.5"
-                      style={{
-                        background: 'rgba(39,174,96,0.08)',
-                        border: '1px solid rgba(39,174,96,0.2)',
-                      }}
+                      style={{ background: 'rgba(212,160,23,0.08)', border: '1px solid rgba(212,160,23,0.2)' }}
                     >
-                      <CheckCircle2 size={15} style={{ color: 'var(--success)' }} aria-hidden="true" />
-                      <span
-                        className="text-sm font-bold uppercase tracking-wider"
-                        style={{ color: 'var(--success)' }}
-                      >
+                      <CheckCircle2 size={15} style={{ color: 'var(--gold)' }} aria-hidden="true" />
+                      <span className="text-sm font-bold uppercase tracking-wider" style={{ color: 'var(--gold)' }}>
                         Cleared
                       </span>
                     </div>
                   ) : checkedIn ? (
-                    <button
-                      type="button"
-                      onClick={handleComplete}
-                      className="btn-primary w-full py-3.5"
-                    >
+                    <button type="button" onClick={handleComplete} className="btn-primary w-full py-3.5">
                       Mark Complete
                     </button>
                   ) : (
                     <div
                       className="flex w-full items-center justify-center rounded-full py-3.5"
-                      style={{
-                        background: 'rgba(255,255,255,0.03)',
-                        border: '1px solid rgba(255,255,255,0.06)',
-                      }}
+                      style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}
                     >
-                      <span
-                        className="text-sm font-bold uppercase tracking-wider"
-                        style={{ color: 'var(--text-faint)' }}
-                      >
+                      <span className="text-sm font-bold uppercase tracking-wider" style={{ color: 'var(--text-faint)' }}>
                         Check in to unlock
                       </span>
                     </div>
@@ -225,15 +199,14 @@ export default function TrialSheet({ trialId, onClose }: TrialSheetProps) {
                   transition={{ duration: 0.18 }}
                   className="flex flex-col items-center px-6 pt-8 pb-6 text-center"
                 >
-                  <motion.img
-                    src={mascotCelebrating}
-                    alt=""
-                    aria-hidden="true"
-                    initial={{ scale: 0.6, opacity: 0, y: 10 }}
-                    animate={{ scale: 1, opacity: 1, y: 0 }}
+                  <motion.div
+                    initial={{ scale: 0.5, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
                     transition={{ type: 'spring', stiffness: 360, damping: 22, delay: 0.05 }}
-                    style={{ width: 130 }}
-                  />
+                    style={{ color: 'var(--gold)' }}
+                  >
+                    <CheckCircle size={64} strokeWidth={1.5} />
+                  </motion.div>
 
                   <motion.h2
                     initial={{ opacity: 0, y: 8 }}
@@ -255,7 +228,6 @@ export default function TrialSheet({ trialId, onClose }: TrialSheetProps) {
                   </motion.p>
                 </motion.div>
               )}
-
             </AnimatePresence>
           </motion.div>
         </>
