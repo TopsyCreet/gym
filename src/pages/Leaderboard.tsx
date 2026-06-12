@@ -111,7 +111,14 @@ export default function Leaderboard() {
       .select('id, name, rank_title, streak, check_ins')
       .eq('gym_id', user.gymId)
       .then(({ data, error }) => {
-        if (error || !data?.length) return;
+        if (error) {
+          console.error('[Leaderboard] profiles query failed:', error.message, error.code);
+          return;
+        }
+        if (!data?.length) {
+          console.warn('[Leaderboard] no profiles returned for gym_id:', user.gymId);
+          return;
+        }
         setLiveMembers(
           data.map((p) => ({
             id: p.id,
@@ -194,7 +201,7 @@ export default function Leaderboard() {
         <div className="mb-5 flex items-start justify-between gap-4">
           <div className="flex items-center gap-3">
             <span className="badge badge-gold">Your Gym</span>
-            {import.meta.env.DEV && (
+            {import.meta.env.DEV && !liveMembers && (
               <span
                 className="rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider"
                 style={{
@@ -202,7 +209,7 @@ export default function Leaderboard() {
                   border: '1px solid rgba(243,156,18,0.2)',
                   color: 'var(--warning)',
                 }}
-                title="Backend gap: showing mock data"
+                title="Showing mock data — check console for query errors"
               >
                 Mock
               </span>
@@ -368,9 +375,9 @@ export default function Leaderboard() {
         <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
           Resets on the 1st · Gym: Prime Performance Center
         </p>
-        {import.meta.env.DEV && (
+        {import.meta.env.DEV && !liveMembers && (
           <p className="text-[10px]" style={{ color: 'var(--text-ghost)' }}>
-            Live board requires gym-scoped members query in Supabase.
+            Showing mock data — run 002_fix_profiles_rls.sql if live members aren't loading.
           </p>
         )}
         <p className="mt-2 text-xs italic" style={{ color: 'var(--text-muted)' }}>
