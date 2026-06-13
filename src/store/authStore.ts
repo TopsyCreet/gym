@@ -204,6 +204,8 @@ const mapProfileToUser = (profile: any, email: string): UserProfile => ({
 });
 
 
+let authListenerRegistered = false;
+
 export const useAuthStore = create<AppState>((set, get) => ({
   users: [],
   currentUserId: null,
@@ -239,7 +241,7 @@ export const useAuthStore = create<AppState>((set, get) => ({
       ? [savedUserData, ...baseUsers.filter((u) => u.id !== savedUserData!.id)]
       : baseUsers;
 
-    set({ users, loading: false, currentUserId: savedUserId });
+    set({ users, loading: false, currentUserId: savedUserId, demoMode: savedUserId === 'demo-user' });
 
     if (!supabaseConfigured || !supabase) {
       return;
@@ -303,6 +305,21 @@ export const useAuthStore = create<AppState>((set, get) => ({
       }
     } catch (err) {
       // ignore
+    }
+    if (!authListenerRegistered) {
+      authListenerRegistered = true;
+      supabase!.auth.onAuthStateChange((event) => {
+        if (event === 'SIGNED_OUT') {
+          set({ currentUserId: null, demoMode: false });
+          try {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            if (raw) {
+              const parsed = JSON.parse(raw);
+              localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...parsed, currentUserId: null }));
+            }
+          } catch {}
+        }
+      });
     }
   },
   login: async (email, password) => {
@@ -719,6 +736,13 @@ export const useAuthStore = create<AppState>((set, get) => ({
 
     // Emit a gym feed event so gymmates see the check-in in real time
     if (supabaseConfigured && supabase && !get().demoMode && updated.gymId) {
+      supabase.from('check_ins').insert({
+        user_id:    updated.id,
+        gym_id:     updated.gymId,
+        checked_in: date,
+      }).then(({ error }) => {
+        if (error && error.code !== '23505') console.warn('[check_ins]', error.message);
+      });
       const initials = updated.name
         .split(' ')
         .map((n: string) => n[0])

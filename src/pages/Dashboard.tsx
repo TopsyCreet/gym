@@ -380,6 +380,41 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* ── First-session welcome (new users: 0 check-ins) ──────────────── */}
+      <AnimatePresence>
+        {user.checkIns === 0 && !checkedInToday && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.96 }}
+            transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+            className="card p-5"
+            data-card
+            style={{ border: '1px solid rgba(212,160,23,0.15)', background: 'rgba(212,160,23,0.025)' }}
+          >
+            <p className="label tracking-[0.22em]">Welcome to Prime</p>
+            <h2 className="mt-1.5 text-xl font-black text-white leading-tight">
+              Your record starts today.
+            </h2>
+            <p className="mt-2 text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+              Every session is logged against your name. Check in from the gym to begin building your streak.
+            </p>
+            <div className="mt-4 grid grid-cols-3 gap-2">
+              {(['Check in at the gym', 'Complete the daily trial', 'Watch your rank climb'] as const).map((step, i) => (
+                <div
+                  key={step}
+                  className="rounded-xl p-3"
+                  style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.05)' }}
+                >
+                  <p className="text-xs font-black tabular-nums" style={{ color: 'var(--gold)' }}>0{i + 1}</p>
+                  <p className="mt-1 text-[11px] leading-snug" style={{ color: 'var(--text-secondary)' }}>{step}</p>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* ── Set weekly commitment (no schedule yet) ──────────────────────── */}
       {weeklyTarget === 0 && (
         <div className="card p-5" data-card>

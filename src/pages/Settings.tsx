@@ -1,17 +1,47 @@
-/**
- * BACKEND GAP: gym transfer requests require a `gym_transfer_requests` table
- * in Supabase (user_id, from_gym_id, to_gym_id, status, created_at) with RLS
- * so the target gym's admin can approve or reject. Showing request UI until that exists.
- */
-
 import { useRef, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, Camera, Save, LogOut, Check, Clock, MapPin } from 'lucide-react';
+import { ChevronLeft, Camera, Save, LogOut, Check, Clock, MapPin, Bell, BellOff } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { supabase, supabaseConfigured } from '../lib/supabaseClient';
 import { uploadAvatar } from '../lib/uploadAvatar';
 import { gyms } from '../data/gyms';
+
+// ── Push notification helpers ─────────────────────────────────────────────────
+const PUSH_SUPPORTED = 'serviceWorker' in navigator && 'PushManager' in window;
+
+async function subscribeToPush(userId: string): Promise<boolean> {
+  if (!PUSH_SUPPORTED || !supabaseConfigured || !supabase) return false;
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    const existing = await reg.pushManager.getSubscription();
+    const sub = existing ?? await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      // Replace with your VAPID public key from Supabase / web-push setup
+      applicationServerKey: import.meta.env.VITE_VAPID_PUBLIC_KEY ?? '',
+    });
+    const json = sub.toJSON();
+    await supabase.from('push_subscriptions').upsert({
+      user_id: userId,
+      endpoint: sub.endpoint,
+      p256dh:   json.keys?.p256dh ?? '',
+      auth:     json.keys?.auth   ?? '',
+    }, { onConflict: 'user_id,endpoint' });
+    return true;
+  } catch { return false; }
+}
+
+async function unsubscribeFromPush(userId: string): Promise<void> {
+  if (!PUSH_SUPPORTED) return;
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.getSubscription();
+    if (sub) {
+      if (supabase) await supabase.from('push_subscriptions').delete().eq('user_id', userId).eq('endpoint', sub.endpoint);
+      await sub.unsubscribe();
+    }
+  } catch {}
+}
 
 export default function Settings() {
   const navigate   = useNavigate();
@@ -27,8 +57,23 @@ export default function Settings() {
   const [saved, setSaved]                 = useState(false);
   const [pendingGymRequest, setPendingGymRequest] = useState<string | null>(null);
   const [transferring, setTransferring]           = useState(false);
+  const [notifEnabled, setNotifEnabled]           = useState(false);
+  const [notifLoading, setNotifLoading]           = useState(false);
   const fileRef  = useRef<HTMLInputElement>(null);
   const demoMode = useAuthStore((s) => s.demoMode);
+
+  // Sync notification toggle with browser permission on mount
+  useEffect(() => {
+    if (!PUSH_SUPPORTED) return;
+    const checkPerm = async () => {
+      if (Notification.permission === 'granted') {
+        const reg = await navigator.serviceWorker.ready.catch(() => null);
+        const sub = await reg?.pushManager.getSubscription().catch(() => null);
+        setNotifEnabled(!!sub);
+      }
+    };
+    checkPerm();
+  }, []);
 
   // Restore any pending transfer request from Supabase on mount
   useEffect(() => {
@@ -107,6 +152,22 @@ export default function Settings() {
     }
     setPendingGymRequest(targetGymId);
     setTransferring(false);
+  };
+
+  // ── Notification toggle ───────────────────────────────────────────────────
+  const handleNotifToggle = async () => {
+    if (!PUSH_SUPPORTED || !user || demoMode || notifLoading) return;
+    setNotifLoading(true);
+    if (notifEnabled) {
+      await unsubscribeFromPush(user.id);
+      setNotifEnabled(false);
+    } else {
+      const perm = await Notification.requestPermission();
+      if (perm !== 'granted') { setNotifLoading(false); return; }
+      const ok = await subscribeToPush(user.id);
+      setNotifEnabled(ok);
+    }
+    setNotifLoading(false);
   };
 
   // ── Sign out ──────────────────────────────────────────────────────────────
@@ -421,8 +482,65 @@ export default function Settings() {
 
       </motion.div>
 
+      {/* ── Notifications */}
+      {PUSH_SUPPORTED && (
+        <motion.div {...fade(3)} className="card p-5 space-y-4">
+          <p className="label tracking-[0.22em]">Notifications</p>
+
+          <div className="flex items-center justify-between gap-4">
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-white">Streak reminders</p>
+              <p className="mt-0.5 text-xs" style={{ color: 'var(--text-faint)' }}>
+                {demoMode
+                  ? 'Not available in demo mode.'
+                  : notifEnabled
+                  ? 'You\'ll be reminded on scheduled days if you haven\'t checked in.'
+                  : Notification.permission === 'denied'
+                  ? 'Blocked by browser — enable in your device settings.'
+                  : 'Off — tap to enable push reminders.'}
+              </p>
+            </div>
+
+            <motion.button
+              type="button"
+              onClick={handleNotifToggle}
+              disabled={demoMode || notifLoading || Notification.permission === 'denied'}
+              whileTap={{ scale: 0.92 }}
+              aria-label={notifEnabled ? 'Disable notifications' : 'Enable notifications'}
+              aria-pressed={notifEnabled}
+              className="shrink-0 flex items-center gap-2 rounded-xl px-3.5 py-2.5 text-xs font-bold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              style={
+                notifEnabled
+                  ? { background: 'rgba(212,160,23,0.1)', border: '1px solid rgba(212,160,23,0.28)', color: 'var(--gold)' }
+                  : { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: 'var(--text-secondary)' }
+              }
+            >
+              {notifLoading ? (
+                <span
+                  className="h-3.5 w-3.5 rounded-full animate-spin"
+                  style={{ border: '2px solid rgba(255,255,255,0.2)', borderTopColor: 'currentColor' }}
+                />
+              ) : notifEnabled ? (
+                <Bell size={13} />
+              ) : (
+                <BellOff size={13} />
+              )}
+              {notifEnabled ? 'On' : 'Off'}
+            </motion.button>
+          </div>
+
+          {!import.meta.env.VITE_VAPID_PUBLIC_KEY && import.meta.env.DEV && (
+            <p className="text-[11px] leading-relaxed rounded-xl px-3 py-2"
+              style={{ background: 'rgba(243,156,18,0.06)', border: '1px solid rgba(243,156,18,0.15)', color: 'var(--warning)' }}
+            >
+              Dev: add <code className="font-mono">VITE_VAPID_PUBLIC_KEY</code> to .env.local and run migration 006 to enable pushes.
+            </p>
+          )}
+        </motion.div>
+      )}
+
       {/* ── Sign out */}
-      <motion.div {...fade(3)} className="card p-5">
+      <motion.div {...fade(PUSH_SUPPORTED ? 4 : 3)} className="card p-5">
         <p className="label mb-4 tracking-[0.22em]">Session</p>
         <button
           type="button"

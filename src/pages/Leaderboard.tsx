@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Heart, TrendingUp, Calendar } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { supabase, supabaseConfigured } from '../lib/supabaseClient';
+import { Skeleton } from '../components/ui/Skeleton';
 
 type MockMember = {
   id: string;
@@ -104,6 +105,7 @@ export default function Leaderboard() {
   const demoMode = useAuthStore((state) => state.demoMode);
   const [tab, setTab] = useState<Tab>('sessions');
   const [liveMembers, setLiveMembers] = useState<(MockMember & { isMe: boolean })[] | null>(null);
+  const [loading, setLoading] = useState(supabaseConfigured && !demoMode && !!user?.gymId);
   const channelRef = useRef<any>(null);
 
   const buildMembers = useCallback((rows: any[], userId: string) => {
@@ -140,14 +142,16 @@ export default function Leaderboard() {
     const userId = user.id;
 
     // Initial fetch
+    setLoading(true);
     supabase
       .from('profiles')
       .select('id, name, rank_title, streak, check_ins, attendance_history')
       .eq('gym_id', gymId)
       .then(({ data, error }) => {
-        if (error) { console.error('[Leaderboard] query failed:', error.message); return; }
-        if (data?.length) setLiveMembers(buildMembers(data, userId));
+        if (error) { console.error('[Leaderboard] query failed:', error.message); }
+        else if (data?.length) setLiveMembers(buildMembers(data, userId));
         else console.warn('[Leaderboard] no profiles for gym_id:', gymId);
+        setLoading(false);
       });
 
     // Real-time: re-fetch the full list whenever any gymmate's profile changes
@@ -322,8 +326,23 @@ export default function Leaderboard() {
         <div className="divider" />
 
         {/* Member rows */}
-        <div className="divide-y" style={{ borderColor: 'rgba(255,255,255,0.03)' }}>
-          {allMembers.map((member, index) => {
+        <div className="divide-y" style={{ borderColor: 'rgba(255,255,255,0.03)' }}
+          role={loading ? 'status' : undefined}
+          aria-label={loading ? 'Loading leaderboard…' : undefined}
+        >
+          {loading ? (
+            Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="flex items-center gap-3 px-5 py-3.5">
+                <Skeleton width={28} height={28} rounded="9999px" />
+                <Skeleton width={36} height={36} rounded="9999px" />
+                <div className="flex-1 space-y-1.5">
+                  <Skeleton height={12} width="55%" />
+                  <Skeleton height={10} width="35%" />
+                </div>
+                <Skeleton width={48} height={20} rounded="9999px" />
+              </div>
+            ))
+          ) : allMembers.map((member, index) => {
             const podium = PODIUM[index];
             const accentColor = getInitialsColor(member.initials);
             const score = tab === 'sessions'

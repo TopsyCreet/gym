@@ -4,10 +4,11 @@ import { motion } from 'framer-motion';
 import { useGSAP } from '@gsap/react';
 import gsap from 'gsap';
 import { useAuthStore } from '../store/authStore';
+import { uploadAvatar } from '../lib/uploadAvatar';
 import { daysOfWeek } from '../utils/streakCalculator';
 import RankBadge from '../components/RankBadge';
 import { getRankByTitle } from '../data/ranks';
-import { TrendingUp, Target, CheckCircle, Save, Settings } from 'lucide-react';
+import { Camera, TrendingUp, Target, CheckCircle, Save, Settings } from 'lucide-react';
 
 type RankTier = { title: string; minCheckIns: number };
 
@@ -37,8 +38,11 @@ function getRankProgress(checkIns: number) {
 export default function Profile() {
   const user       = useAuthStore((state) => state.getUser());
   const updateUser = useAuthStore((state) => state.updateUser);
-  const [schedule, setSchedule] = useState(user?.schedule ?? []);
-  const [saved, setSaved]       = useState(false);
+  const demoMode   = useAuthStore((state) => state.demoMode);
+  const [schedule, setSchedule]           = useState(user?.schedule ?? []);
+  const [saved, setSaved]                 = useState(false);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const rankBarRef   = useRef<HTMLDivElement>(null);
@@ -72,6 +76,16 @@ export default function Profile() {
     { icon: TrendingUp,  label: 'Best Streak',   value: user?.longestStreak ?? 0,       color: '#A1A1AA', suffix: 'd' },
     { icon: Target,      label: 'Trials',        value: user?.challengesCompleted ?? 0, color: '#D4A017' },
   ];
+
+  const handleAvatarPick = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user || demoMode) return;
+    e.target.value = '';
+    setAvatarUploading(true);
+    const url = await uploadAvatar(file, user.id);
+    if (url) updateUser({ ...user, avatar: url });
+    setAvatarUploading(false);
+  };
 
   const handleSave = () => {
     if (!user) return;
@@ -134,21 +148,52 @@ export default function Profile() {
 
           {/* Avatar + identity */}
           <div className="flex items-center gap-5">
-            {user.avatar ? (
-              <img
-                src={user.avatar}
-                alt="avatar"
-                className="h-20 w-20 shrink-0 rounded-2xl object-cover"
-                style={{ border: `1px solid ${rank.color}35` }}
-              />
-            ) : (
-              <div
-                className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl text-3xl font-black text-black"
-                style={{ background: `linear-gradient(145deg, ${rank.color}cc, ${rank.color})` }}
-              >
-                {user.name.charAt(0)}
-              </div>
-            )}
+            <button
+              type="button"
+              onClick={() => !demoMode && avatarInputRef.current?.click()}
+              disabled={avatarUploading || demoMode}
+              className="relative shrink-0 rounded-2xl overflow-hidden transition-opacity"
+              style={{ width: 80, height: 80, cursor: demoMode ? 'default' : 'pointer' }}
+              aria-label={demoMode ? 'Avatar' : 'Change avatar'}
+            >
+              {user.avatar ? (
+                <img
+                  src={user.avatar}
+                  alt="avatar"
+                  className="h-full w-full object-cover"
+                  style={{ border: `1px solid ${rank.color}35` }}
+                />
+              ) : (
+                <div
+                  className="h-full w-full flex items-center justify-center text-3xl font-black text-black"
+                  style={{ background: `linear-gradient(145deg, ${rank.color}cc, ${rank.color})` }}
+                >
+                  {user.name.charAt(0)}
+                </div>
+              )}
+              {!demoMode && (
+                <div
+                  className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity"
+                  style={{ background: 'rgba(0,0,0,0.48)' }}
+                >
+                  {avatarUploading ? (
+                    <span
+                      className="h-4 w-4 rounded-full animate-spin"
+                      style={{ border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff' }}
+                    />
+                  ) : (
+                    <Camera size={18} style={{ color: '#fff' }} />
+                  )}
+                </div>
+              )}
+            </button>
+            <input
+              ref={avatarInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleAvatarPick}
+              className="sr-only"
+            />
             <div className="min-w-0">
               <p className="label tracking-[0.25em]">Prime Member</p>
               <h1 className="mt-1 truncate text-2xl font-black leading-tight text-white sm:text-3xl">

@@ -144,8 +144,9 @@ function FeedItemRow({ item, onKudos }: { item: FeedItem; onKudos?: () => void }
 export default function GymFeedCard() {
   const user     = useAuthStore((s) => s.getUser());
   const demoMode = useAuthStore((s) => s.demoMode);
-  const [items, setItems] = useState<FeedItem[]>([]);
-  const [isLive, setIsLive] = useState(false);
+  const [items, setItems]     = useState<FeedItem[]>([]);
+  const [isLive, setIsLive]   = useState(false);
+  const [loading, setLoading] = useState(false);
   const channelRef = useRef<any>(null);
 
   const canUseLive = supabaseConfigured && !!supabase && !demoMode && !!user?.gymId;
@@ -155,6 +156,8 @@ export default function GymFeedCard() {
       setItems(MOCK_FEED);
       return;
     }
+
+    setLoading(true);
 
     supabase
       .from('gym_feed')
@@ -176,6 +179,7 @@ export default function GymFeedCard() {
         } else {
           setItems(MOCK_FEED);
         }
+        setLoading(false);
       });
 
     const channel = supabase
@@ -221,21 +225,31 @@ export default function GymFeedCard() {
         Prime Performance Center
       </p>
 
-      <div>
-        {items.map((item) => (
-          <FeedItemRow
-            key={item.id}
-            item={item}
-            onKudos={isLive && supabase ? () => {
-              supabase!.rpc('increment_kudos', { feed_id: item.id })
-                .then(({ error }) => { if (error) console.warn('[kudos]', error.message); });
-            } : undefined}
-          />
-        ))}
-        {items.length === 0 && (
-          <p className="py-6 text-center text-xs" style={{ color: 'var(--text-faint)' }}>
-            No activity yet — be the first to check in.
-          </p>
+      <div role={loading ? 'status' : undefined} aria-label={loading ? 'Loading gym feed…' : undefined}>
+        {loading ? (
+          <>
+            <FeedRowSkeleton />
+            <FeedRowSkeleton />
+            <FeedRowSkeleton />
+          </>
+        ) : (
+          <>
+            {items.map((item) => (
+              <FeedItemRow
+                key={item.id}
+                item={item}
+                onKudos={isLive && supabase ? () => {
+                  supabase!.rpc('increment_kudos', { feed_id: item.id })
+                    .then(({ error }) => { if (error) console.warn('[kudos]', error.message); });
+                } : undefined}
+              />
+            ))}
+            {items.length === 0 && (
+              <p className="py-6 text-center text-xs" style={{ color: 'var(--text-faint)' }}>
+                No activity yet — be the first to check in.
+              </p>
+            )}
+          </>
         )}
       </div>
     </div>
